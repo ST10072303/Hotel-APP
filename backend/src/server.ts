@@ -4,6 +4,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import { pool } from "./config/database.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import accommodationRoutes from "./routes/accommodationRoutes.js";
 
 // Load environment variables.
 dotenv.config();
@@ -32,6 +33,8 @@ app.get("/api/health/database", async (_req: Request, res: Response) => {
   res.status(200).json({success: true, message: "PostgreSQL connection is working", database: result.rows[0].database_name});
 });
 
+// Accommodation API routes.
+app.use("/api/accommodations", accommodationRoutes);
 
 // Handle unknown API endpoints.
 app.use((_req: Request, res: Response) => {
