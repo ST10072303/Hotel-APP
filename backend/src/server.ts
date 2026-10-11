@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { pool } from "./config/database.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import accommodationRoutes from "./routes/accommodationRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 // Load environment variables.
 dotenv.config();
@@ -35,6 +36,9 @@ app.get("/api/health/database", async (_req: Request, res: Response) => {
 
 // Accommodation API routes.
 app.use("/api/accommodations", accommodationRoutes);
+
+// Authentication API routes.
+app.use("/api/auth", authRoutes);
 
 // Handle unknown API endpoints.
 app.use((_req: Request, res: Response) => {
