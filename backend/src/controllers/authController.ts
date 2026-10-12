@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { loginUser, registerUser,} from "../services/authService.js";
+import { getUserById } from "../services/userService.js";
 
 // Validate registration input.
 const registerSchema = z.object({
@@ -61,6 +62,32 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       res.status(403).json({success: false, message: "This account is inactive"});
       return;
     }
+    next(error);
+  }
+};
+
+// Returns the profile of the authenticated user, Requires a valid JWT.
+export const getCurrentUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({success: false, message: "Authentication required."});
+      return;
+    }
+
+    const user = await getUserById(req.user.id);
+
+    if (!user) {
+      res.status(404).json({success: false, message: "User not found."});
+      return;
+    }
+
+    if (!user.is_active) {
+      res.status(403).json({success: false, message: "This account is inactive."});
+      return;
+    }
+
+    res.status(200).json({success: true, data: user});
+  } catch (error) {
     next(error);
   }
 };

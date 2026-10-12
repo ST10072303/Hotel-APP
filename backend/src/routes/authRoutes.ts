@@ -1,12 +1,14 @@
 import { Router } from "express";
-import { login, register } from "../controllers/authController.js";
+import { login, register, getCurrentUser } from "../controllers/authController.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-// Register a new customer account.
+// Public authentication routes.
 router.post("/register", register);
-
-// Authenticate an existing customer.
 router.post("/login", login);
+
+// Protected route: requires a valid JWT.
+router.get("/me", authenticateToken, getCurrentUser);
 
 export default router;
