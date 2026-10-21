@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { getAccommodationDetails, getAccommodations,
-} from "../controllers/accommodationController.js";
+import { getAccommodationDetails, getAccommodations } from "../controllers/accommodationController.js";
 
 const router = Router();
 

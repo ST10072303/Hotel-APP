@@ -1,0 +1,25 @@
+/* Apply consistent sizing to every element. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Remove the browser's default page spacing. */
+html, body, #root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+/* Prevent images and form controls from overflowing their containers. */
+img {
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+/* Make the application fill the available viewport height. */
+#root {
+  min-height: 100vh;
+}

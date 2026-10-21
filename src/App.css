@@ -1,0 +1,714 @@
+/* colours samples */
+:root {
+  --brand-green: #1a4f45;
+  --brand-blue: #3347a3;
+  --text-dark: #172933;
+  --text-muted: #99a3a8;
+  --border-color: #d4dbe0;
+  --rating-gold: #c98f40;
+  --surface-white: #ffffff;
+  --page-background: #f8fafb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--text-dark);
+  background: var(--page-background);
+  font-family: Inter, Arial, sans-serif;
+  font-size: 14px;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header and main navigation */
+.site-header {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 32px;
+  background: var(--surface-white);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.brand {
+  flex-shrink: 0;
+  color: var(--brand-green);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.desktop-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 28px;
+  margin-left: auto;
+}
+
+.desktop-navigation a {
+  font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.desktop-navigation a:hover {
+  color: var(--brand-green);
+}
+
+.profile-avatar {
+  display: none;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-dark);
+  background: #e9edf8;
+  font-weight: 700;
+}
+
+/* Hero banner and search form */
+.hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 188px;
+  padding: 24px 32px 26px;
+  background-color: #dce6ed;
+
+  /* Hero image */
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.83), rgba(255, 255, 255, 0.52)),
+    url('/images/miami-hero.png');
+  background-position: center;
+  background-size: cover;
+}
+
+.hero-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  max-width: 650px;
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.hero-content > p {
+  margin: 8px 0 18px;
+  color: var(--text-dark);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.7fr) minmax(110px, 0.9fr)
+    minmax(110px, 0.9fr) minmax(145px, 1fr) 86px;
+  align-items: end;
+  gap: 12px;
+}
+
+.form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field > span {
+  color: var(--text-dark);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.form-field input, .form-field select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+  color: var(--text-dark);
+  background: var(--surface-white);
+  font-size: 12px;
+}
+
+.form-field input:focus, .form-field select:focus {
+  border-color: var(--brand-green);
+  box-shadow: 0 0 0 2px rgba(26, 79, 69, 0.12);
+}
+
+.primary-button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--brand-green);
+  border-radius: 7px;
+  color: var(--surface-white);
+  background: var(--brand-blue);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.primary-button:hover {
+  background: #28398b;
+}
+
+.primary-button:active {
+  transform: translateY(1px);
+}
+
+/* Branch listings */
+main {
+  flex: 1;
+}
+
+.branches-section {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 32px 28px;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+}
+
+.section-heading h2, .why-stay-section h2 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.section-heading p {
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.branch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+
+/* Figma branch cards are compact horizontal cards on desktop. */
+.branch-card {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 84px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--surface-white);
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.branch-card:hover {
+  border-color: #b9c6cc;
+  box-shadow: 0 4px 14px rgba(23, 41, 51, 0.06);
+}
+
+/* Keep branch thumbnails compact, like the 86 × 62 px Figma images. */
+.branch-image {
+  display: block;
+  width: 86px;
+  height: 62px;
+  margin: 10px 0 10px 10px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #e9eef1;
+}
+
+.branch-card-content {
+  min-width: 0;
+  padding: 10px 10px 10px 14px;
+}
+
+.branch-card h3 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* The location is available in the expanded details, so the
+   compact card can match the Figma's name / price / rating layout. */
+.branch-location {
+  display: none;
+}
+
+.branch-price {
+  margin: 8px 0 7px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.branch-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.text-button {
+  padding: 4px 0;
+  border: 0;
+  color: var(--brand-green);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.branch-rating,
+.text-button {
+  font-size: 10px;
+}
+
+/* Expanded branch details */
+.branch-details {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  background: #f7f9fa;
+  font-size: 12px;
+  line-height: 1.6;
+  animation: details-appear 0.2s ease-out;
+}
+
+/* Give the branch information a clear hierarchy. */
+.branch-details > p {
+  margin: 0 0 12px;
+  color: #52616a;
+  line-height: 1.7;
+}
+
+.branch-details > p strong {
+  color: var(--text-dark);
+}
+
+.branch-details h4 {
+  margin: 20px 0 12px;
+  color: var(--text-dark);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Room types are presented as individual selection cards. */
+.room-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-list li {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--surface-white);
+  box-shadow: 0 2px 5px rgba(23, 41, 51, 0.03);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.room-list li:hover {
+  border-color: #b7c9c5;
+  box-shadow: 0 4px 12px rgba(23, 41, 51, 0.07);
+  transform: translateY(-1px);
+}
+
+/* Room name and capacity information. */
+.room-list li > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.room-list li strong {
+  color: var(--text-dark);
+  font-size: 13px;
+}
+
+.room-list small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Price stands out without overpowering the room name. */
+.room-price {
+  display: block;
+  padding-top: 10px;
+  border-top: 1px solid #edf0f2;
+  color: var(--brand-green);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Make empty room states look intentional. */
+.branch-details > p:last-child {
+  color: #52616a;
+}
+
+/* Clear feedback for a failed detail request. */
+.branch-details .error-text {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #efcaca;
+  border-radius: 6px;
+  color: #a12626;
+  background: #fff5f5;
+}
+
+.secondary-button {
+  margin-top: 10px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  color: var(--text-dark);
+  background: var(--surface-white);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.secondary-button:hover {
+  border-color: var(--brand-green);
+  color: var(--brand-green);
+}
+
+/* Why stay with Miami Hotels? */
+.why-stay-section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 32px 28px;
+}
+
+.why-stay-section h2 {
+  color: var(--brand-green);
+  font-size: 16px;
+}
+
+.why-stay-section p {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.why-stay-section p span {
+  padding: 0 4px;
+}
+
+/* Footer  */
+.site-footer {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  color: var(--surface-white);
+  background: var(--text-dark);
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Tablet layout  */
+
+@media (max-width: 900px) {
+  .site-header {
+    padding: 0 22px;
+  }
+
+  .desktop-navigation {
+    gap: 16px;
+  }
+
+  .hero {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .search-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .destination-field, .guests-field {
+    grid-column: span 2;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .branches-section, .why-stay-section {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+}
+
+/* Mobile layout  */
+@media (max-width: 600px) {
+  body {
+    font-size: 13px;
+  }
+
+  .site-header {
+    min-height: 48px;
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  /* The mobile screen uses an initials avatar instead of displaying the full desktop navigation. */
+  .desktop-navigation {
+    display: none;
+  }
+
+  .profile-avatar {
+    display: flex;
+  }
+
+  .hero {
+    min-height: 0;
+    padding: 18px 16px 22px;
+    background-position: center;
+  }
+
+  .hero h1 {
+    max-width: 340px;
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .hero-content > p {
+    margin: 8px 0 20px;
+    font-size: 12px;
+  }
+
+  .search-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 14px;
+  }
+
+  .destination-field, .guests-field, .search-button {
+    grid-column: span 2;
+  }
+
+  .form-field > span {
+    font-size: 11px;
+  }
+
+  .form-field input, .form-field select {
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .search-button {
+    width: 120px;
+    justify-self: center;
+  }
+
+  .branches-section {
+    padding: 22px 16px 26px;
+  }
+
+  .section-heading {
+    margin-bottom: 16px;
+  }
+
+  .section-heading h2 {
+    font-size: 16px;
+  }
+
+  .section-heading p {
+    font-size: 11px;
+  }
+
+  /* One branch per row on phones. */
+  .branch-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .branch-card {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 104px;
+  }
+
+  .branch-image {
+    width: 86px;
+    height: 62px;
+    margin: 10px 0 10px 10px;
+    border-radius: 6px;
+  }
+
+  .branch-card-content {
+    min-width: 0;
+    padding: 10px 10px 10px 14px;
+  }
+
+  .branch-card h3 {
+    font-size: 12px;
+  }
+
+  .branch-location {
+    margin: 3px 0 5px;
+    font-size: 10px;
+  }
+
+  .branch-price {
+    margin-bottom: 7px;
+    font-size: 11px;
+  }
+
+  .branch-card-footer {
+    gap: 6px;
+    padding-top: 5px;
+    border-top: 0;
+  }
+
+  .branch-rating,
+  .text-button {
+    font-size: 10px;
+  }
+
+  /* Expanded room information uses the full card width. */
+  .branch-details {
+    grid-column: 1 / -1;
+    padding: 12px;
+  }
+
+  .room-list li {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .view-all-button {
+    width: 100%;
+    margin-top: 16px;
+  }
+
+  .why-stay-section {
+    padding: 10px 16px 24px;
+  }
+
+  .why-stay-section h2 {
+    font-size: 15px;
+  }
+
+  .why-stay-section p {
+    font-size: 11px;
+  }
+
+  .site-footer {
+    padding: 14px 10px;
+  }
+
+  .site-footer nav {
+    gap: 8px;
+    font-size: 10px;
+  }
+}
+
+/* Small phones: allow long room names and prices to wrap naturally. */
+@media (max-width: 360px) {
+  .hero h1 {
+    font-size: 20px;
+  }
+
+  .branches-section {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .branch-card {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .branch-image {
+    width: 74px;
+    height: 58px;
+    margin-left: 8px;
+  }
+
+  .branch-card-content {
+    padding-left: 10px;
+  }
+}
