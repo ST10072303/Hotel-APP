@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './App.css';
 
 // The API currently returns one object for each hotel/branch.
@@ -46,9 +46,16 @@ interface AccommodationDetailsResponse {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 // Format prices as South African rand, for example R 1200
-function formatPrice(price: string | null): string {
+function formatPrice(price: string | number | null): string {
   if (price === null || price === '') {
     return 'Check dates for price';
+  }
+
+  const numericPrice = Number(price);
+
+  // Avoid displaying invalid numeric values as a price.
+  if (!Number.isFinite(numericPrice)) {
+    return 'Price unavailable';
   }
 
   return new Intl.NumberFormat('en-ZA', {
@@ -58,6 +65,8 @@ function formatPrice(price: string | null): string {
 }
 
 function App() {
+  // Tracks the latest branch-details request.
+  const detailsRequestId = useRef(0);
   // Branches returned by the existing backend.
   const [branches, setBranches] = useState<Accommodation[]>([]);
 
@@ -80,13 +89,46 @@ function App() {
   // Date availability filtering
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
-  const [guestsAndRooms, setGuestsAndRooms] = useState('2 guests • 1 room');
+  // Stores the number of guests and rooms separately for future booking requests.
+  const [guests, setGuests] = useState(2);
+  const [rooms, setRooms] = useState(1);
 
   // State for loading and displaying details when "View rooms" is clicked.
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [branchDetails, setBranchDetails] = useState<AccommodationDetails | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState('');
+
+  // Stores the ID of the room type selected by the customer.
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+
+  // Finds the room type selected by the customer.
+  const selectedRoom = branchDetails?.room_types.find((room) => room.id === selectedRoomId);
+
+  // Calculates the number of nights between check-in and check-out.
+  const stayNights = checkIn && checkOut ? Math.round(
+    (new Date(`${checkOut}T00:00:00`).getTime() -
+      new Date(`${checkIn}T00:00:00`).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+  // Calculates the estimated cost for all requested rooms.
+ const estimatedTotal = selectedRoom && guests <= selectedRoom.capacity && stayNights > 0 &&
+  rooms > 0 ? Number(selectedRoom.price_per_night) * rooms * stayNights : 0;
+
+  // Formats the guest and room selection for display.
+  const guestsAndRooms = `${guests} ${guests === 1 ? 'guest' : 'guests'} • ` +
+    `${rooms} ${rooms === 1 ? 'room' : 'rooms'}`;
+
+  // Checks whether the selected room can accommodate all requested guests.
+  const exceedsRoomCapacity = selectedRoom !== undefined && guests > selectedRoom.capacity;
+
+
+  //  Clears the selected room if the guest count changes and the room can no longer accommodate the guests.
+  useEffect(() => {
+    if (selectedRoom && guests > selectedRoom.capacity) {
+      setSelectedRoomId(null);
+    }
+  }, [guests, selectedRoom]);
+
 
   // Load the branches from the backend.
   // This runs when the page first opens and when a new search is submitted.
@@ -100,8 +142,7 @@ function App() {
         const params = new URLSearchParams();
 
         // The current API searches accommodation names and cities.
-        // If user enters "Polokwane, Limpopo", use "Polokwane"
-        // the request matches the fields currently supported by the API.
+        // If user enters "Polokwane" the request matches the fields supported by the API.
         const searchTerm = submittedDestination.split(',')[0].trim();
 
         if (searchTerm) {
@@ -140,7 +181,6 @@ function App() {
         }
       }
     }
-
     void loadBranches();
 
     // Abort an old request when a new search starts.
@@ -188,22 +228,20 @@ function App() {
     }
 
     // Update the destination used by the existing API request.
+    // Apply the destination to the existing accommodation search.
     setSubmittedDestination(destination.trim());
   }
 
   // Load room information from the existing detail endpoint
   async function handleViewRooms(branchId: string) {
-    // Clicking the same branch again closes its details.
-    if (selectedBranchId === branchId) {
-      setSelectedBranchId(null);
-      setBranchDetails(null);
-      setDetailsError('');
-      return;
-    }
+    // Give this request a unique ID so older requests cannot overwrite it.
+    const requestId = ++detailsRequestId.current;
 
+    // Open the modal and reset the previous branch's information.
     setSelectedBranchId(branchId);
     setBranchDetails(null);
     setDetailsError('');
+    setSelectedRoomId(null);
     setIsLoadingDetails(true);
 
     try {
@@ -215,12 +253,31 @@ function App() {
 
       const result = (await response.json()) as AccommodationDetailsResponse;
 
+      // Ignore the response if a newer request has started.
+      if (requestId !== detailsRequestId.current) return;
+
       setBranchDetails(result.data);
     } catch (error) {
+      // Ignore errors from an outdated request.
+      if (requestId !== detailsRequestId.current) return;
+
       setDetailsError(error instanceof Error ? error.message : 'Unable to load room details.');
     } finally {
-      setIsLoadingDetails(false);
+      // Only the current request should stop the loading indicator.
+      if (requestId === detailsRequestId.current) {
+        setIsLoadingDetails(false);
+      }
     }
+  }
+
+  // Close the modal and invalidates any outstanding request.
+  function closeBranchModal() {
+    detailsRequestId.current += 1;
+    setSelectedBranchId(null);
+    setBranchDetails(null);
+    setDetailsError('');
+    setIsLoadingDetails(false);
+    setSelectedRoomId(null);
   }
 
   return (
@@ -258,25 +315,40 @@ function App() {
 
               <label className="form-field">
                 <span>Check-in</span>
-                <input type="date" min={new Date().toLocaleDateString('en-CA')} value={checkIn} onChange={(event) => 
-                setCheckIn(event.target.value)} aria-label="Check-in date" />
+                <input type="date" min={new Date().toLocaleDateString('en-CA')} value={checkIn} onChange={(event) =>
+                  setCheckIn(event.target.value)} aria-label="Check-in date" />
               </label>
 
               <label className="form-field">
                 <span>Check-out</span>
                 <input type="date" min={checkIn || new Date().toLocaleDateString('en-CA')} value={checkOut} onChange={(event) =>
-                setCheckOut(event.target.value)} aria-label="Check-out date"/>
+                  setCheckOut(event.target.value)} aria-label="Check-out date" />
               </label>
+
 
               <label className="form-field guests-field">
                 <span>Guests &amp; rooms</span>
-                <select value={guestsAndRooms} onChange={(event) => setGuestsAndRooms(event.target.value)}>
-                  <option>1 guest • 1 room</option>
-                  <option>2 guests • 1 room</option>
-                  <option>3 guests • 1 room</option>
-                  <option>4 guests • 1 room</option>
-                  <option>2 guests • 2 rooms</option>
-                  <option>4 guests • 2 rooms</option>
+                <select value={guestsAndRooms} onChange={(event) => {
+                  // Read the selected option and separate its guest and room counts.
+                  const selectedOption = event.target.value;
+                  const guestMatch = selectedOption.match(/^(\d+)\s+guests?/);
+                  const roomMatch = selectedOption.match(/(\d+)\s+rooms?$/);
+
+                  // Update each value only when the matching number is found.
+                  if (guestMatch) {
+                    setGuests(Number(guestMatch[1]));
+                  }
+
+                  if (roomMatch) {
+                    setRooms(Number(roomMatch[1]));
+                  }
+                }}>
+                  <option value="1 guest • 1 room">1 guest • 1 room</option>
+                  <option value="2 guests • 1 room">2 guests • 1 room</option>
+                  <option value="3 guests • 1 room">3 guests • 1 room</option>
+                  <option value="4 guests • 1 room">4 guests • 1 room</option>
+                  <option value="2 guests • 2 rooms">2 guests • 2 rooms</option>
+                  <option value="4 guests • 2 rooms">4 guests • 2 rooms</option>
                 </select>
               </label>
 
@@ -343,41 +415,127 @@ function App() {
                           'Hide details' : 'View rooms'}</button>
                     </div>
                   </div>
-
-                  {/* Expanded details from GET /api/accommodations/:id. */}
-                  {selectedBranchId === branch.id && (
-                    <div className="branch-details">
-                      {isLoadingDetails && (<p role="status">Loading branch details…</p>)}
-
-                      {detailsError && (<p className="error-text" role="alert">{detailsError}</p>)}
-
-                      {branchDetails && !isLoadingDetails && (
-                        <>
-                          <p><strong>Address:</strong> {branchDetails.address},{' '}{branchDetails.city}</p>
-                          {branchDetails.description && (<p>{branchDetails.description}</p>)}
-
-                          <h4>Available room types</h4>
-                          {branchDetails.room_types.length === 0 ? (
-                            <p>No room types are listed for this branch yet.</p>
-                          ) : (
-                            <ul className="room-list">
-                              {branchDetails.room_types.map((room) => (
-                                <li key={room.id}>
-                                  <span>
-                                    <strong>{room.name}</strong>
-                                    <small>Up to {room.capacity} guests</small>
-                                  </span>
-                                  <span className="room-price">{formatPrice(room.price_per_night)} / night</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
                 </article>
               ))}
+            </div>
+          )}
+
+          {/* Branch details modal */}
+          {selectedBranchId !== null && (
+            <div className="branch-modal-backdrop" onMouseDown={(event) => {
+              // Close only when the backdrop itself is clicked.
+              if (event.target === event.currentTarget) {
+                closeBranchModal();
+              }
+            }}>
+
+              <section className="branch-modal" role="dialog" aria-modal="true" aria-labelledby="branch-modal-title">
+                <div className="branch-modal-header">
+                  <div>
+                    <h3 id="branch-modal-title">{branchDetails?.name ?? 'Hotel branch details'}</h3>
+                    <p>Explore the branch and its room types.</p>
+                  </div>
+
+                  <button type="button" className="branch-modal-close" onClick={closeBranchModal}
+                    aria-label="Close branch details">&times;</button>
+                </div>
+
+                <div className="branch-modal-content">
+                  {isLoadingDetails && (<p role="status">Loading branch details…</p>)}
+                  {detailsError && (<p className="error-text" role="alert">{detailsError}</p>)}
+                  {branchDetails && !isLoadingDetails && (
+                    <>
+                      <p><strong>Address:</strong>{' '}
+                        {branchDetails.address}, {branchDetails.city}</p>
+                      {branchDetails.description && (<p>{branchDetails.description}</p>)}
+
+                      <h4>Available room types</h4>
+                      {branchDetails.room_types.length === 0 ? (
+                        <p>No room types are listed for this branch yet.</p>
+                      ) : (
+                        <ul className="room-list">{branchDetails.room_types.map((room) => {
+                          const isSelected = selectedRoomId === room.id;
+
+                          return (
+                            <li key={room.id} className={isSelected ? 'room-card room-card-selected' : 'room-card'}>
+                              <span><strong>{room.name}</strong><small>Up to {room.capacity} guests</small></span>
+                              <span className="room-price">{formatPrice(room.price_per_night)} / night</span>
+
+                              <button type="button" className="select-room-button" onClick={() => setSelectedRoomId(room.id)}
+                                aria-pressed={isSelected} disabled={guests > room.capacity} title={guests > room.capacity
+                                  ? `This room accommodates up to ${room.capacity} guests` : 'Select this room type'}>
+                                {guests > room.capacity ? 'Exceeds Guest Capacity' : isSelected ? 'Room Selected' : 'Select Room'}
+                              </button>
+
+                            </li>
+                          );
+                        })}
+                        </ul>
+                      )}
+
+                      {/* Booking summary appears after a room type is selected. */}
+                      {selectedRoom && (
+                        <section className="booking-summary">
+                          <h4>Your stay summary</h4>
+
+                          <div className="booking-summary-row">
+                            <span>Hotel branch</span>
+                            <strong>{branchDetails.name}</strong>
+                          </div>
+
+                          <div className="booking-summary-row">
+                            <span>Room type</span>
+                            <strong>{selectedRoom.name}</strong>
+                          </div>
+                          {/* Warns the customer if the selected room is too small. */}
+                          {exceedsRoomCapacity && (<p className="error-text" role="alert">This room accommodates up to {selectedRoom.capacity} guests.
+                            You have selected {guests} guests. Please choose a suitable room type.</p>)}
+
+                          <div className="booking-summary-row">
+                            <span>Check-in</span>
+                            <strong>{checkIn || 'Not selected'}</strong>
+                          </div>
+
+                          <div className="booking-summary-row">
+                            <span>Check-out</span>
+                            <strong>{checkOut || 'Not selected'}</strong>
+                          </div>
+
+                          <div className="booking-summary-row">
+                            <span>Guests and rooms</span>
+                            <strong>{guestsAndRooms}</strong>
+                          </div>
+
+                          <div className="booking-summary-row">
+                            <span>Price per room / night</span>
+                            <strong>{formatPrice(selectedRoom.price_per_night)}</strong>
+                          </div>
+
+                          {stayNights > 0 && (
+                            <>
+                              <div className="booking-summary-row">
+                                <span>Length of stay</span>
+                                <strong>
+                                  {stayNights} {stayNights === 1 ? 'night' : 'nights'}
+                                </strong>
+                              </div>
+
+                              <div className="booking-summary-total">
+                                <span>Estimated total</span>
+                                <strong>{formatPrice(estimatedTotal)}</strong>
+                              </div>
+                            </>
+                          )}
+                          <p className="booking-summary-note">This is an estimate, not a confirmed reservation.
+                            Final pricing and room availability must be verified before booking.</p>
+                        </section>
+                      )}
+                    </>
+                  )}
+
+
+                </div>
+              </section>
             </div>
           )}
 
