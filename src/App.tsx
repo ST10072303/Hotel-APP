@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import './App.css';
 
 // The API currently returns one object for each hotel/branch.
@@ -28,7 +28,7 @@ interface RoomType {
 interface AccommodationDetails extends Accommodation {
   room_types: RoomType[];
   amenities: { id: string; name: string; description: string | null }[];
-  policies: {id: string; policy_type: string; title: string; description: string;}[];
+  policies: { id: string; policy_type: string; title: string; description: string; }[];
 }
 
 interface AccommodationListResponse {
@@ -51,8 +51,10 @@ function formatPrice(price: string | null): string {
     return 'Check dates for price';
   }
 
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR',
-    maximumFractionDigits: 0}).format(Number(price));
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency', currency: 'ZAR',
+    maximumFractionDigits: 0
+  }).format(Number(price));
 }
 
 function App() {
@@ -67,6 +69,9 @@ function App() {
   // means we don't send a request for every character typed
   const [destination, setDestination] = useState('');
   const [submittedDestination, setSubmittedDestination] = useState('');
+
+  // Stores validation messages for the hotel search form.
+  const [searchError, setSearchError] = useState('');
 
   // Changing this value lets the user retry a failed API request.
   const [retryCount, setRetryCount] = useState(0);
@@ -85,7 +90,8 @@ function App() {
 
   // Load the branches from the backend.
   // This runs when the page first opens and when a new search is submitted.
-  useEffect(() => {const controller = new AbortController();
+  useEffect(() => {
+    const controller = new AbortController();
     async function loadBranches() {
       setIsLoading(true);
       setErrorMessage('');
@@ -104,12 +110,11 @@ function App() {
 
         // Ask for up to 100 results, using the API's supported page limit.
         params.set('page', '1');
-        params.set('limit', '50');
+        params.set('limit', '100');
 
         const queryString = params.toString();
         const url = `${API_BASE_URL}/api/accommodations?${queryString}`;
-
-        const response = await fetch(url, {signal: controller.signal});
+        const response = await fetch(url, { signal: controller.signal });
 
         if (!response.ok) {
           throw new Error(`The server returned status ${response.status}.`);
@@ -143,8 +148,46 @@ function App() {
   }, [submittedDestination, retryCount]);
 
   // Submit the destination search
-  function handleSearch(event: React.FormEvent<HTMLFormElement>) {
+  // Validates the search form before requesting hotel branches.
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    // Prevent the browser from refreshing the page.
     event.preventDefault();
+
+    // Clear any previous validation message.
+    setSearchError('');
+
+    // A destination is required to search for hotel branches.
+    if (!destination.trim()) {
+      setSearchError('Please enter a destination or city.');
+      return;
+    }
+
+    // Both dates must be selected.
+    if (!checkIn || !checkOut) {
+      setSearchError('Please select your check-in and check-out dates.');
+      return;
+    }
+
+    // Convert the selected dates to timestamps for comparison.
+    const checkInDate = new Date(`${checkIn}T00:00:00`);
+    const checkOutDate = new Date(`${checkOut}T00:00:00`);
+
+    // Check-out must be after check-in.
+    if (checkOutDate <= checkInDate) {
+      setSearchError('Check-out must be after check-in.');
+      return;
+    }
+
+    // Prevent a check-in date from the past.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (checkInDate < today) {
+      setSearchError('Check-in cannot be in the past.');
+      return;
+    }
+
+    // Update the destination used by the existing API request.
     setSubmittedDestination(destination.trim());
   }
 
@@ -210,18 +253,18 @@ function App() {
               <label className="form-field destination-field">
                 <span>Destination / province</span>
                 <input type="text" value={destination} onChange={(event) => setDestination(event.target.value)}
-                  placeholder="Choose branch or province"/>
+                  placeholder="Choose branch or province" />
               </label>
 
               <label className="form-field">
                 <span>Check-in</span>
-                <input type="date" value={checkIn} onChange={(event) => setCheckIn(event.target.value)}
-                  aria-label="Check-in date"/>
+                <input type="date" min={new Date().toLocaleDateString('en-CA')} value={checkIn} onChange={(event) => 
+                setCheckIn(event.target.value)} aria-label="Check-in date" />
               </label>
 
               <label className="form-field">
                 <span>Check-out</span>
-                <input type="date" min={checkIn || undefined} value={checkOut} onChange={(event) => 
+                <input type="date" min={checkIn || new Date().toLocaleDateString('en-CA')} value={checkOut} onChange={(event) =>
                 setCheckOut(event.target.value)} aria-label="Check-out date"/>
               </label>
 
@@ -238,6 +281,8 @@ function App() {
               </label>
 
               <button className="primary-button search-button" type="submit">Search</button>
+              {/* Shows validation feedback when the search details are invalid. */}
+              {searchError && (<p className="search-error" role="alert">{searchError}</p>)}
             </form>
           </div>
         </section>
@@ -265,8 +310,7 @@ function App() {
             <div className="empty-message">
               <h3>No branches found</h3>
               <p>Try another destination or clear your search.</p>
-              <button className="secondary-button" type="button" onClick={() =>
-               {setDestination(''); setSubmittedDestination('');}}>View all branches</button>
+              <button className="secondary-button" type="button" onClick={() => { setDestination(''); setSubmittedDestination(''); }}>View all branches</button>
             </div>
           )}
 
@@ -274,11 +318,12 @@ function App() {
             <div className="branch-grid">
               {branches.map((branch) => (
                 <article className="branch-card" key={branch.id}>
-                  <img className="branch-image" src={branch.image_url ||'https://placehold.co/800x500?text=Miami+Hotels'}
-                    alt={`${branch.name} branch`} loading="lazy"onError={(event) => {
+                  <img className="branch-image" src={branch.image_url || 'https://placehold.co/800x500?text=Miami+Hotels'}
+                    alt={`${branch.name} branch`} loading="lazy" onError={(event) => {
                       // Show a fallback image if the saved image URL fails.
                       event.currentTarget.onerror = null;
-                      event.currentTarget.src = 'https://placehold.co/800x500?text=Miami+Hotels';}}/>
+                      event.currentTarget.src = 'https://placehold.co/800x500?text=Miami+Hotels';
+                    }} />
 
                   <div className="branch-card-content">
                     <h3>{branch.name}</h3>
@@ -290,12 +335,12 @@ function App() {
 
                     <div className="branch-card-footer">
                       <span className="branch-rating">
-                        <span aria-hidden="true">★</span>{' '} {branch.star_rating ? 
-                        Number(branch.star_rating).toFixed(1) : 'Not rated'}</span>
+                        <span aria-hidden="true">★</span>{' '} {branch.star_rating ?
+                          Number(branch.star_rating).toFixed(1) : 'Not rated'}</span>
 
                       <button className="text-button" type="button" onClick={() => void handleViewRooms(branch.id)}
                         aria-expanded={selectedBranchId === branch.id}>{selectedBranchId === branch.id ?
-                           'Hide details' : 'View rooms'}</button>
+                          'Hide details' : 'View rooms'}</button>
                     </div>
                   </div>
 
@@ -339,8 +384,8 @@ function App() {
           {/* View all branches control on mobile */}
           {branches.length > 0 && (
             <button className="secondary-button view-all-button" type="button" onClick={() => {
-                setDestination(''); setSubmittedDestination('');}}>View all branches</button>
-          )}
+              setDestination(''); setSubmittedDestination('');
+            }}>View all branches</button>)}
         </section>
 
         {/* benefits section */}

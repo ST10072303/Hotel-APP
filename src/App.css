@@ -189,6 +189,15 @@ button {
   transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
+/* Search form validation feedback */
+.search-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .primary-button:hover {
   background: #28398b;
 }
@@ -204,7 +213,7 @@ main {
 
 .branches-section {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1250px;
   margin: 0 auto;
   padding: 24px 32px 28px;
 }
@@ -232,7 +241,6 @@ main {
   gap: 16px;
 }
 
-
 /* Figma branch cards are compact horizontal cards on desktop. */
 .branch-card {
   display: grid;
@@ -244,9 +252,7 @@ main {
   border: 1px solid var(--border-color);
   border-radius: 9px;
   background: var(--surface-white);
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .branch-card:hover {
@@ -278,8 +284,7 @@ main {
   line-height: 1.4;
 }
 
-/* The location is available in the expanded details, so the
-   compact card can match the Figma's name / price / rating layout. */
+/* The location is available in the expanded details */
 .branch-location {
   display: none;
 }
@@ -309,8 +314,7 @@ main {
   font-weight: 700;
 }
 
-.branch-rating,
-.text-button {
+.branch-rating, .text-button {
   font-size: 10px;
 }
 
@@ -365,10 +369,7 @@ main {
   border-radius: 9px;
   background: var(--surface-white);
   box-shadow: 0 2px 5px rgba(23, 41, 51, 0.03);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .room-list li:hover {
