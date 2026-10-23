@@ -560,6 +560,19 @@ main {
   gap: 14px;
 }
 
+/* Identify the selected room type. */
+.room-selection-status {
+  display: inline-block;
+  align-self: center;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: #e5f5ec;
+  color: #176b3a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .select-room-button {
   width: 100%;
   padding: 10px 14px;

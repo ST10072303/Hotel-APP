@@ -111,8 +111,8 @@ function App() {
       new Date(`${checkIn}T00:00:00`).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
   // Calculates the estimated cost for all requested rooms.
- const estimatedTotal = selectedRoom && guests <= selectedRoom.capacity && stayNights > 0 &&
-  rooms > 0 ? Number(selectedRoom.price_per_night) * rooms * stayNights : 0;
+  const estimatedTotal = selectedRoom && guests <= selectedRoom.capacity && stayNights > 0 &&
+    rooms > 0 ? Number(selectedRoom.price_per_night) * rooms * stayNights : 0;
 
   // Formats the guest and room selection for display.
   const guestsAndRooms = `${guests} ${guests === 1 ? 'guest' : 'guests'} • ` +
@@ -457,8 +457,11 @@ function App() {
                           const isSelected = selectedRoomId === room.id;
 
                           return (
-                            <li key={room.id} className={isSelected ? 'room-card room-card-selected' : 'room-card'}>
+                            <li key={room.id} className={isSelected ? 'room-card room-card-selected' : 'room-card'}
+                              aria-label={`${room.name}${isSelected ? ', selected' : ''}`}>
                               <span><strong>{room.name}</strong><small>Up to {room.capacity} guests</small></span>
+
+                              {isSelected && (<span className="room-selection-status" role="status">Selected</span>)}
                               <span className="room-price">{formatPrice(room.price_per_night)} / night</span>
 
                               <button type="button" className="select-room-button" onClick={() => setSelectedRoomId(room.id)}
@@ -466,7 +469,6 @@ function App() {
                                   ? `This room accommodates up to ${room.capacity} guests` : 'Select this room type'}>
                                 {guests > room.capacity ? 'Exceeds Guest Capacity' : isSelected ? 'Room Selected' : 'Select Room'}
                               </button>
-
                             </li>
                           );
                         })}
@@ -506,6 +508,11 @@ function App() {
                             <strong>{guestsAndRooms}</strong>
                           </div>
 
+                          {/* Reminds the customer to complete the stay dates. */}
+                          {(!checkIn || !checkOut || stayNights <= 0) && (<p className="booking-summary-note" role="status">Select valid check-in
+                            and check-out dates to calculate your estimated stay total.</p>)}
+
+
                           <div className="booking-summary-row">
                             <span>Price per room / night</span>
                             <strong>{formatPrice(selectedRoom.price_per_night)}</strong>
@@ -515,9 +522,7 @@ function App() {
                             <>
                               <div className="booking-summary-row">
                                 <span>Length of stay</span>
-                                <strong>
-                                  {stayNights} {stayNights === 1 ? 'night' : 'nights'}
-                                </strong>
+                                <strong>{stayNights} {stayNights === 1 ? 'night' : 'nights'}</strong>
                               </div>
 
                               <div className="booking-summary-total">

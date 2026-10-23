@@ -6,6 +6,7 @@ import { pool } from "./config/database.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import accommodationRoutes from "./routes/accommodationRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
 
 // Load environment variables.
 dotenv.config();
@@ -39,6 +40,9 @@ app.use("/api/accommodations", accommodationRoutes);
 
 // Authentication API routes.
 app.use("/api/auth", authRoutes);
+
+// Booking API routes.
+app.use("/api/bookings", bookingRoutes);
 
 // Handle unknown API endpoints.
 app.use((_req: Request, res: Response) => {
