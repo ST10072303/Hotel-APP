@@ -113,6 +113,15 @@ function App() {
   // Finds the room type selected by the customer.
   const selectedRoom = branchDetails?.room_types.find((room) => room.id === selectedRoomId);
 
+  // Tracks whether a booking request is being submitted.
+  const [isBooking, setIsBooking] = useState(false);
+
+  // Stores success or error feedback for the booking process.
+  const [bookingMessage, setBookingMessage] = useState('');
+
+  // Identifies whether the booking feedback represents an error.
+  const [bookingError, setBookingError] = useState(false);
+
   // Calculates the number of nights between check-in and check-out.
   const stayNights = checkIn && checkOut ? Math.round(
     (new Date(`${checkOut}T00:00:00`).getTime() -
@@ -140,6 +149,66 @@ function App() {
   function handleSignOut() {
     sessionStorage.removeItem('authToken');
     setAuthToken(null);
+  }
+
+  // Submits a booking to the authenticated booking API.
+  async function handleBooking() {
+    // A customer must be signed in before submitting a booking.
+    if (!authToken) {
+      setBookingMessage('Please sign in before booking a room.');
+      setBookingError(true);
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    // A branch and room type must be selected.
+    if (!branchDetails || !selectedRoom) {
+      setBookingMessage('Please select a hotel branch and room type.');
+      setBookingError(true);
+      return;
+    }
+
+    // Validate the selected dates before sending the request.
+    if (!checkIn || !checkOut || stayNights <= 0) {
+      setBookingMessage('Please select valid check-in and check-out dates.');
+      setBookingError(true);
+      return;
+    }
+
+    // Ensure the selected room can accommodate the guests.
+    if (guests > selectedRoom.capacity) {
+      setBookingMessage('Please select a room that accommodates all guests.');
+      setBookingError(true);
+      return;
+    }
+
+    setIsBooking(true);
+    setBookingMessage('');
+    setBookingError(false);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          accommodation_id: branchDetails.id, room_type_id: selectedRoom.id,
+          check_in: checkIn, check_out: checkOut, guest_count: guests, quantity: rooms
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || result.error || `Booking failed (${response.status}).`);
+      }
+
+      setBookingMessage(result.message || 'Your booking request was submitted successfully.');
+      setBookingError(false);
+    } catch (error) {
+      setBookingMessage(error instanceof Error ? error.message : 'Unable to submit your booking. Please try again.');
+      setBookingError(true);
+    } finally {
+      setIsBooking(false);
+    }
   }
 
   //  Clears the selected room if the guest count changes and the room can no longer accommodate the guests.
@@ -565,22 +634,26 @@ function App() {
                           )}
                           <p className="booking-summary-note">This is an estimate, not a confirmed reservation.
                             Final pricing and room availability must be verified before booking.</p>
+                          {/* Booking submission feedback */}
+                          {bookingMessage && (<p className={bookingError ? 'error-text' : 'booking-success-message'}
+                            role={bookingError ? 'alert' : 'status'}>{bookingMessage}</p>)}
+
+                          {/* Submit the selected room booking */}
+                          <button type="button" className="primary-button" onClick={() => void handleBooking()}
+                            disabled={isBooking || isLoadingDetails || !checkIn || !checkOut || stayNights <= 0 ||
+                              exceedsRoomCapacity}>{isBooking ? 'Submitting booking…' : 'Book this room'}</button>
                         </section>
                       )}
                     </>
                   )}
-
-
                 </div>
               </section>
             </div>
           )}
 
           {/* View all branches control on mobile */}
-          {branches.length > 0 && (
-            <button className="secondary-button view-all-button" type="button" onClick={() => {
-              setDestination(''); setSubmittedDestination('');
-            }}>View all branches</button>)}
+          {branches.length > 0 && (<button className="secondary-button view-all-button" type="button" onClick={() => {
+              setDestination(''); setSubmittedDestination(''); }}>View all branches</button>)}
         </section>
 
         {/* benefits section */}
@@ -603,9 +676,9 @@ function App() {
         </nav>
       </footer>
 
-      {isAuthModalOpen && (<AuthModal onClose={() => setIsAuthModalOpen(false)} onAuthenticated={handleAuthenticated}/>)}
+      {isAuthModalOpen && (<AuthModal onClose={() => setIsAuthModalOpen(false)} onAuthenticated={handleAuthenticated} />)}
     </div>
-    );
-  }
+  );
+}
 
 export default App;

@@ -1,4 +1,3 @@
-
 /* Colours taken from the Hotel-APP Figma design. */
 :root {
   --auth-lavender: #7a8cc7;
@@ -9,7 +8,7 @@
   --auth-white: #ffffff;
 }
 
-/* Dimmed background behind the authentication dialog. */
+/* background behind the authentication dialog. */
 .auth-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -22,7 +21,7 @@
   background: rgba(15, 22, 42, 0.58);
 }
 
-/* Main desktop dialog: welcome panel and form panel. */
+/* Main dialog welcome panel and form panel. */
 .auth-modal {
   position: relative;
   display: grid;
@@ -37,7 +36,7 @@
   box-shadow: 0 24px 70px rgba(16, 27, 65, 0.22);
 }
 
-/* Lavender welcome section on the left. */
+/* welcome section on the left. */
 .auth-welcome-panel {
   display: flex;
   align-items: center;
@@ -47,7 +46,7 @@
   background: var(--auth-lavender);
 }
 
-/* Translucent indigo card inside the welcome panel. */
+/* card inside the welcome panel. */
 .auth-welcome-card {
   display: flex;
   flex-direction: column;
@@ -97,7 +96,7 @@
   line-height: 1.5;
 }
 
-/* Right-hand form section. */
+/* Right-hand section. */
 .auth-form-panel {
   position: relative;
   display: flex;
@@ -109,7 +108,6 @@
   background: var(--auth-white);
 }
 
-/* Close control in the upper-right corner. */
 .auth-modal-close {
   position: absolute;
   top: 16px;
@@ -139,7 +137,6 @@
   opacity: 0.6;
 }
 
-/* Form heading and supporting text. */
 .auth-modal-heading {
   margin-bottom: 28px;
   padding-right: 14px;
@@ -181,9 +178,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    color 0.2s ease,
-    background 0.2s ease;
+  transition: color 0.2s ease, background 0.2s ease;
 }
 
 .auth-mode-switch button.auth-mode-active {
@@ -198,7 +193,6 @@
   opacity: 0.65;
 }
 
-/* Form fields are arranged vertically. */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -230,9 +224,7 @@
   background: var(--auth-white);
   font-family: inherit;
   font-size: 12px;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .auth-field input::placeholder {
@@ -264,7 +256,7 @@
   background: #fff5f5;
 }
 
-/* Primary sign-in or create-account button. */
+/* sign-in or create-account button. */
 .auth-submit-button {
   display: flex;
   align-items: center;
@@ -282,9 +274,7 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .auth-submit-button:hover:not(:disabled) {
@@ -300,7 +290,6 @@
   opacity: 0.65;
 }
 
-/* Prompt at the bottom to switch between forms. */
 .auth-switch-prompt {
   margin: 28px 0 0;
   color: var(--auth-muted);
@@ -336,8 +325,7 @@
   outline-offset: 3px;
 }
 
-/* Tablet layout: reduce the column sizes and padding. */
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .auth-modal-backdrop {
     padding: 16px;
   }
@@ -361,7 +349,6 @@
   }
 }
 
-/* Mobile layout: welcome banner above the authentication form. */
 @media (max-width: 560px) {
   .auth-modal-backdrop {
     align-items: center;
@@ -459,7 +446,6 @@
   }
 }
 
-/* Extra-small screens. */
 @media (max-width: 360px) {
   .auth-modal-backdrop {
     padding: 8px;
@@ -482,7 +468,6 @@
   }
 }
 
-/* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .auth-modal-close,
   .auth-mode-switch button,
