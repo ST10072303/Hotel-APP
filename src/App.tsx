@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './App.css';
+import { AuthModal } from './components/Auth/AuthModal';
 
 // The API currently returns one object for each hotel/branch.
 interface Accommodation {
@@ -65,6 +66,13 @@ function formatPrice(price: string | number | null): string {
 }
 
 function App() {
+  // Controls whether the login and registration modal is visible.
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Restores the authentication token for the current browser tab.
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    return sessionStorage.getItem('authToken');
+  });
   // Tracks the latest branch-details request.
   const detailsRequestId = useRef(0);
   // Branches returned by the existing backend.
@@ -121,6 +129,18 @@ function App() {
   // Checks whether the selected room can accommodate all requested guests.
   const exceedsRoomCapacity = selectedRoom !== undefined && guests > selectedRoom.capacity;
 
+  // Saves the token after a successful login or registration.
+  function handleAuthenticated(token: string) {
+    sessionStorage.setItem('authToken', token);
+    setAuthToken(token);
+    setIsAuthModalOpen(false);
+  }
+
+  // Signs the current user out of this browser session.
+  function handleSignOut() {
+    sessionStorage.removeItem('authToken');
+    setAuthToken(null);
+  }
 
   //  Clears the selected room if the guest count changes and the room can no longer accommodate the guests.
   useEffect(() => {
@@ -290,12 +310,24 @@ function App() {
           <a href="#branches">Branches</a>
           <a href="#favourites" title="Favourites feature to be added">Favourites</a>
           <a href="#bookings" title="My bookings feature to be added">My Bookings</a>
-          <a href="#sign-in" title="Sign-in screen to be added">Sign in</a>
+          <button type="button" className="auth-nav-button" onClick={() => {
+            if (authToken) {
+              handleSignOut();
+            } else {
+              setIsAuthModalOpen(true);
+            }
+          }}>{authToken ? 'Sign out' : 'Sign in'}</button>
         </nav>
 
         {/* The profile circle */}
-        <button className="profile-avatar" type="button" aria-label="Open profile (to be added)"
-          title="Profile feature to be added">Me</button>
+        <button className="profile-avatar" type="button" aria-label={authToken ? 'Sign out' : 'Open sign-in'}
+          title={authToken ? 'Sign out' : 'Sign in'} onClick={() => {
+            if (authToken) {
+              handleSignOut();
+            } else {
+              setIsAuthModalOpen(true);
+            }
+          }}>{authToken ? 'Out' : 'Me'}</button>
       </header>
 
       <main id="home">
@@ -570,8 +602,10 @@ function App() {
           <a href="#privacy">Privacy</a>
         </nav>
       </footer>
+
+      {isAuthModalOpen && (<AuthModal onClose={() => setIsAuthModalOpen(false)} onAuthenticated={handleAuthenticated}/>)}
     </div>
-  );
-}
+    );
+  }
 
 export default App;

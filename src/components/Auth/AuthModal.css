@@ -1,0 +1,493 @@
+
+/* Colours taken from the Hotel-APP Figma design. */
+:root {
+  --auth-lavender: #7a8cc7;
+  --auth-indigo: #3347a3;
+  --auth-heading: #1a1f2e;
+  --auth-muted: #6b7585;
+  --auth-border: #dbe0eb;
+  --auth-white: #ffffff;
+}
+
+/* Dimmed background behind the authentication dialog. */
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(15, 22, 42, 0.58);
+}
+
+/* Main desktop dialog: welcome panel and form panel. */
+.auth-modal {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  width: min(100%, 935px);
+  min-height: 600px;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid var(--auth-border);
+  border-radius: 14px;
+  background: var(--auth-white);
+  box-shadow: 0 24px 70px rgba(16, 27, 65, 0.22);
+}
+
+/* Lavender welcome section on the left. */
+.auth-welcome-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 36px;
+  background: var(--auth-lavender);
+}
+
+/* Translucent indigo card inside the welcome panel. */
+.auth-welcome-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 450px;
+  padding: 30px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  color: var(--auth-white);
+  background: rgba(51, 71, 163, 0.7);
+}
+
+.auth-modal-brand {
+  margin: 0;
+  color: var(--auth-white);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.auth-welcome-copy {
+  margin: auto 0;
+  padding: 36px 0;
+}
+
+.auth-welcome-copy h2 {
+  margin: 0 0 16px;
+  color: var(--auth-white);
+  font-size: clamp(26px, 2.5vw, 30px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.auth-welcome-copy p {
+  max-width: 290px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.auth-welcome-tagline {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Right-hand form section. */
+.auth-form-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 48px 46px 38px;
+  overflow-y: auto;
+  background: var(--auth-white);
+}
+
+/* Close control in the upper-right corner. */
+.auth-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--auth-heading);
+  background: #f3f5fa;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.auth-modal-close:hover:not(:disabled) {
+  background: var(--auth-border);
+}
+
+.auth-modal-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Form heading and supporting text. */
+.auth-modal-heading {
+  margin-bottom: 28px;
+  padding-right: 14px;
+}
+
+.auth-modal-heading h1 {
+  margin: 0 0 10px;
+  color: var(--auth-heading);
+  font-size: clamp(22px, 2.3vw, 25px);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.auth-modal-heading p {
+  margin: 0;
+  color: var(--auth-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* Login and registration tabs. */
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 25px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #f3f5fa;
+}
+
+.auth-mode-switch button {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--auth-muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.auth-mode-switch button.auth-mode-active {
+  border-color: var(--auth-border);
+  color: var(--auth-indigo);
+  background: var(--auth-white);
+  box-shadow: 0 1px 4px rgba(26, 31, 46, 0.08);
+}
+
+.auth-mode-switch button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Form fields are arranged vertically. */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+}
+
+.auth-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-field > span {
+  color: var(--auth-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.auth-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 11px 12px;
+  border: 1px solid var(--auth-border);
+  border-radius: 7px;
+  outline: none;
+  color: var(--auth-heading);
+  background: var(--auth-white);
+  font-family: inherit;
+  font-size: 12px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.auth-field input::placeholder {
+  color: #929bab;
+}
+
+.auth-field input:focus {
+  border-color: var(--auth-indigo);
+  box-shadow: 0 0 0 3px rgba(51, 71, 163, 0.1);
+}
+
+.auth-field input:disabled {
+  cursor: not-allowed;
+  background: #f7f8fb;
+}
+
+/* Backend and client-side validation feedback. */
+.auth-feedback {
+  margin: 0;
+  padding: 11px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.auth-error {
+  border: 1px solid #efcaca;
+  color: #a12626;
+  background: #fff5f5;
+}
+
+/* Primary sign-in or create-account button. */
+.auth-submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  min-height: 42px;
+  align-self: center;
+  margin-top: 2px;
+  padding: 10px 16px;
+  border: 1px solid var(--auth-indigo);
+  border-radius: 8px;
+  color: var(--auth-white);
+  background: var(--auth-indigo);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.auth-submit-button:hover:not(:disabled) {
+  background: #28398b;
+}
+
+.auth-submit-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Prompt at the bottom to switch between forms. */
+.auth-switch-prompt {
+  margin: 28px 0 0;
+  color: var(--auth-muted);
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.auth-switch-prompt button {
+  padding: 2px 0;
+  border: 0;
+  color: var(--auth-indigo);
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-switch-prompt button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.auth-switch-prompt button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Keyboard focus indicators. */
+.auth-modal button:focus-visible,
+.auth-field input:focus-visible {
+  outline: 2px solid var(--auth-indigo);
+  outline-offset: 3px;
+}
+
+/* Tablet layout: reduce the column sizes and padding. */
+@media (max-width: 760px) {
+  .auth-modal-backdrop {
+    padding: 16px;
+  }
+
+  .auth-modal {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+    min-height: 540px;
+  }
+
+  .auth-welcome-panel {
+    padding: 20px;
+  }
+
+  .auth-welcome-card {
+    min-height: 420px;
+    padding: 24px 20px;
+  }
+
+  .auth-form-panel {
+    padding: 48px 25px 30px;
+  }
+}
+
+/* Mobile layout: welcome banner above the authentication form. */
+@media (max-width: 560px) {
+  .auth-modal-backdrop {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .auth-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    min-height: 0;
+    overflow-y: auto;
+    border-radius: 12px;
+  }
+
+  .auth-welcome-panel {
+    display: block;
+    flex: 0 0 auto;
+    padding: 17px;
+  }
+
+  .auth-welcome-card {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 170px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .auth-modal-brand {
+    font-size: 11px;
+  }
+
+  .auth-welcome-copy {
+    margin: 0;
+    padding: 23px 0 15px;
+  }
+
+  .auth-welcome-copy h2 {
+    margin-bottom: 8px;
+    font-size: 24px;
+  }
+
+  .auth-welcome-copy p {
+    max-width: 290px;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .auth-welcome-tagline {
+    font-size: 11px;
+  }
+
+  .auth-form-panel {
+    flex: 1 0 auto;
+    padding: 25px 23px 28px;
+    overflow: visible;
+  }
+
+  .auth-modal-close {
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+  }
+
+  .auth-modal-heading {
+    margin-bottom: 22px;
+    padding-right: 25px;
+  }
+
+  .auth-modal-heading h1 {
+    font-size: 22px;
+  }
+
+  .auth-mode-switch {
+    margin-bottom: 22px;
+  }
+
+  .auth-form {
+    gap: 16px;
+  }
+
+  .auth-field input {
+    min-height: 40px;
+  }
+
+  .auth-submit-button {
+    width: 150px;
+    min-height: 40px;
+  }
+
+  .auth-switch-prompt {
+    margin-top: 23px;
+  }
+}
+
+/* Extra-small screens. */
+@media (max-width: 360px) {
+  .auth-modal-backdrop {
+    padding: 8px;
+  }
+
+  .auth-welcome-panel {
+    padding: 12px;
+  }
+
+  .auth-welcome-card {
+    padding: 17px;
+  }
+
+  .auth-form-panel {
+    padding: 23px 17px;
+  }
+
+  .auth-modal-heading h1 {
+    font-size: 20px;
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-modal-close,
+  .auth-mode-switch button,
+  .auth-field input,
+  .auth-submit-button {
+    transition: none;
+  }
+}
