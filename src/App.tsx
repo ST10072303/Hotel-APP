@@ -397,7 +397,6 @@ function App() {
               setIsAuthModalOpen(true);
             }
           }}>{authToken ? 'Sign out' : 'Sign in'}</button>
-
         </nav>
 
         {/* The profile circle */}
@@ -414,10 +413,7 @@ function App() {
       <main id="home">
         {/* Hero section */}
         <section className="hero">
-          {showMyBookings ? (
-            <MyBookings authToken={authToken!} onBackToHotels={() => setShowMyBookings(false)}/>
-          ) : (
-            <>
+          
               <div className="hero-content">
                 <h1>Find your next stay across South Africa</h1>
                 <p>Explore our branches, compare rooms and book with confidence.</p>
@@ -474,9 +470,10 @@ function App() {
                   {searchError && (<p className="search-error" role="alert">{searchError}</p>)}
                 </form>
               </div>
-            </>)}
         </section>
-
+          {showMyBookings ? (
+            <MyBookings authToken={authToken!} onBackToHotels={() => setShowMyBookings(false)}/>
+          ) : (<></>)}
         {/* Branches are loaded from PostgreSQL through the existing API */}
         <section className="branches-section" id="branches">
           <div className="section-heading">

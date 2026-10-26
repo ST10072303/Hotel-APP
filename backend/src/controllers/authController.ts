@@ -7,7 +7,7 @@ import { getUserById } from "../services/userService.js";
 const registerSchema = z.object({
   full_name: z.string().trim().min(2).max(150),
   email: z.string().trim().email().max(255),
-  password: z.string().min(8).max(72),
+  password: z.string().min(8).max(72)
 });
 
 // Validate login input.

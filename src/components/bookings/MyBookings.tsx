@@ -46,6 +46,13 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Tracks which booking is currently being cancelled.
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+
+  // Displays cancellation success or error messages.
+  const [cancellationMessage, setCancellationMessage] = useState('');
+  const [cancellationError, setCancellationError] = useState(false);
+
   useEffect(() => {
     // Avoid making an API request without an authentication token.
     if (!authToken) {
@@ -64,8 +71,9 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
 
       try {
         const response = await fetch(`${API_BASE_URL}/api/bookings`, {
-          method: 'GET', headers: {Authorization: `Bearer ${authToken}`},
-          signal: controller.signal});
+          method: 'GET', headers: { Authorization: `Bearer ${authToken}` },
+          signal: controller.signal
+        });
 
         const result = (await response.json()) as MyBookingsResponse;
 
@@ -105,7 +113,8 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
 
     try {
       return new Intl.NumberFormat('en-ZA', {
-        style: 'currency', currency}).format(numericAmount);
+        style: 'currency', currency
+      }).format(numericAmount);
     } catch {
       return `${currency} ${numericAmount.toFixed(2)}`;
     }
@@ -117,7 +126,69 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
     const [year, month, day] = dateOnly.split('-').map(Number);
 
     return new Date(year, month - 1, day).toLocaleDateString('en-ZA', {
-      day: 'numeric', month: 'short', year: 'numeric'});
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
+  }
+
+  // Cancels a pending booking belonging to the authenticated customer.
+  async function handleCancelBooking(booking: Booking) {
+    // Ask the customer to confirm before changing the booking.
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel booking ${booking.booking_reference}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setCancellingBookingId(booking.id);
+    setCancellationMessage('');
+    setCancellationError(false);
+
+    try {
+      // Send the cancellation request to the protected backend endpoint.
+      const response = await fetch(
+        `${API_BASE_URL}/api/bookings/${encodeURIComponent(booking.id)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      const result = (await response.json()) as {
+        success: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to cancel this booking.');
+      }
+
+      // Update the displayed booking immediately after successful cancellation.
+      setBookings((currentBookings) =>
+        currentBookings.map((currentBooking) =>
+          currentBooking.id === booking.id
+            ? { ...currentBooking, status: 'cancelled' }
+            : currentBooking
+        )
+      );
+
+      setCancellationMessage(
+        result.message || 'Booking cancelled successfully.'
+      );
+    } catch (error) {
+      setCancellationError(true);
+
+      setCancellationMessage(
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred while cancelling the booking.'
+      );
+    } finally {
+      setCancellingBookingId(null);
+    }
   }
 
   if (isLoading) {
@@ -140,8 +211,8 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
 
   return (
     <section className="my-bookings">
-     <button type="button" className="back-to-hotels-button"
-      onClick={onBackToHotels}>Back to Hotels</button>
+      <button type="button" className="back-to-hotels-button"
+        onClick={onBackToHotels}>Back to Hotels</button>
       <header className="my-bookings-header">
         <h2>My Bookings</h2>
         <p>View your hotel reservations and booking details.</p>
@@ -150,17 +221,18 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
       {bookings.length === 0 ? (
         <div className="my-bookings-empty">
           <h3>No bookings yet</h3>
-            <p>When you book a room, your reservation will appear here.</p>
+          <p>When you book a room, your reservation will appear here.</p>
         </div>
       ) : (
         <div className="my-bookings-list">
           {bookings.map((booking) => (
             <article className="booking-card" key={booking.id}>
               <div className="booking-card-header">
+
                 <div>
                   <h3>{booking.accommodation_name}</h3>
                   <p>{booking.accommodation_address} {booking.accommodation_city
-                      ? `, ${booking.accommodation_city}` : ''} </p>
+                    ? `, ${booking.accommodation_city}` : ''} </p>
                 </div>
 
                 <span className={`booking-status booking-status-${booking.status.toLowerCase()}`}>
@@ -202,23 +274,30 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
                     <span>{room.room_name} × {room.quantity}</span>
                     <span>{formatPrice(room.price_per_night, booking.currency)}{' / night'}
                     </span>
-                  </div>
-                ))}
+                  </div>))}
               </div>
 
               {booking.special_requests && (
                 <div className="booking-special-requests">
                   <h4>Special requests</h4>
                   <p>{booking.special_requests}</p>
-                </div>
-              )}
+                </div>)}
 
               {booking.status.toLowerCase() === 'pending' && (
-                <p className="booking-payment-note">Your booking is pending. Payment has not yet been confirmed.</p>
+                <>
+                  <p className="booking-payment-note">Your booking is pending. Payment has not yet been confirmed.</p>
+                  <button type="button" className="cancel-booking-button" onClick={() => void handleCancelBooking(booking)}
+                    disabled={cancellingBookingId !== null}> {cancellingBookingId === booking.id
+                      ? 'Cancelling...' : 'Cancel Booking'}</button>
+                </>
               )}
             </article>
           ))}
         </div>
+      )}
+      {cancellationMessage && (
+        <p className={cancellationError ? 'my-bookings-error' : 'cancellation-success-message'}
+          role={cancellationError ? 'alert' : 'status'}>{cancellationMessage}</p>
       )}
     </section>
   );

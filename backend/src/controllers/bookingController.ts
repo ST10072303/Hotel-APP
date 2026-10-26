@@ -216,3 +216,60 @@ export const getMyBookings = async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 };
+
+
+// DELETE /api/bookings/:bookingId
+export const cancelBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  // Ensure the authentication middleware supplied the user's ID.
+  if (!req.user) {
+    res.status(401).json({success: false, message: "Authentication required."});
+    return;
+  }
+
+  // Read the booking ID from the URL.
+  const bookingId = String(req.params.bookingId ?? "").trim();
+
+  if (!bookingId) {
+    res.status(400).json({success: false, message: "A booking ID is required."});
+    return;
+  }
+
+  try {
+    // Cancel only a pending booking owned by the authenticated customer.
+    // The status condition also prevents repeated cancellation.
+    const result = await pool.query(
+      `UPDATE bookings
+       SET status = 'cancelled'
+       WHERE id = $1
+         AND user_id = $2
+         AND status = 'pending'
+       RETURNING id, booking_reference, status`,
+      [bookingId, req.user.id]);
+
+    const cancelledBooking = result.rows[0];
+
+    if (cancelledBooking) {
+      res.status(200).json({success: true, message: "Booking cancelled successfully.", data: cancelledBooking});
+      return;
+    }
+
+    // If no booking was updated, check whether this customer owns it.
+    const existingBooking = await pool.query(
+      `SELECT id, status
+       FROM bookings
+       WHERE id = $1 AND user_id = $2`,
+      [bookingId, req.user.id]);
+
+    // Do not reveal another customer's booking details.
+    if (existingBooking.rows.length === 0) {
+      res.status(404).json({success: false, message: "Booking not found."});
+      return;
+    }
+
+    // The booking exists but is no longer eligible for cancellation.
+    res.status(409).json({success: false, message: existingBooking.rows[0].status === "cancelled"
+          ? "This booking has already been cancelled." : "Only pending bookings can be cancelled."});
+  } catch (error) {
+    next(error);
+  }
+};
