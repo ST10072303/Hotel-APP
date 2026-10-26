@@ -181,3 +181,38 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
     client.release();
   }
 };
+
+
+// GET /api/bookings
+// Retrieves bookings belonging only to the authenticated customer.
+export const getMyBookings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  // Ensure the authentication middleware supplied the user ID.
+  if (!req.user) {
+    res.status(401).json({success: false, message: "Authentication required."});
+    return;
+  }
+
+  try {
+    // Always filter by the authenticated user's ID.
+    // Never accept a customer ID from the query string.
+    const result = await pool.query(`SELECT b.id, b.booking_reference, b.check_in, b.check_out,
+         b.guest_count, b.total_amount, b.currency, b.status, b.special_requests, b.created_at,
+         a.name AS accommodation_name, a.address AS accommodation_address, a.city AS accommodation_city,
+         COALESCE(
+           json_agg(
+             json_build_object('room_type_id', rt.id, 'room_name', rt.name, 'quantity', br.quantity,
+               'price_per_night', br.price_per_night)
+           ) FILTER (WHERE br.id IS NOT NULL), '[]'::json) AS rooms
+       FROM bookings b
+       INNER JOIN accommodations a ON a.id = b.accommodation_id
+       LEFT JOIN booking_rooms br ON br.booking_id = b.id
+       LEFT JOIN room_types rt ON rt.id = br.room_type_id
+       WHERE b.user_id = $1
+       GROUP BY b.id, a.id
+       ORDER BY b.created_at DESC`, [req.user.id]);
+
+    res.status(200).json({success: true, count: result.rows.length, data: result.rows});
+  } catch (error) {
+    next(error);
+  }
+};

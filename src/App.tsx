@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './App.css';
-import { AuthModal } from './components/Auth/AuthModal';
+import { AuthModal } from './components/auth/AuthModal';
+import { MyBookings } from './components/bookings/MyBookings';
 
 // The API currently returns one object for each hotel/branch.
 interface Accommodation {
@@ -75,8 +76,12 @@ function App() {
   });
   // Tracks the latest branch-details request.
   const detailsRequestId = useRef(0);
+
   // Branches returned by the existing backend.
   const [branches, setBranches] = useState<Accommodation[]>([]);
+
+  // Controls whether the customer sees the hotel search or their bookings.
+  const [showMyBookings, setShowMyBookings] = useState(false);
 
   // These states help us give feedback while the API request is running or when something goes wrong.
   const [isLoading, setIsLoading] = useState(true);
@@ -378,7 +383,13 @@ function App() {
         <nav className="desktop-navigation" aria-label="Main navigation">
           <a href="#branches">Branches</a>
           <a href="#favourites" title="Favourites feature to be added">Favourites</a>
-          <a href="#bookings" title="My bookings feature to be added">My Bookings</a>
+          <a href="#bookings" onClick={() => {
+            if (!authToken) {
+              setIsAuthModalOpen(true);
+              return;
+            }
+            setShowMyBookings(true);
+          }}>My Bookings</a>
           <button type="button" className="auth-nav-button" onClick={() => {
             if (authToken) {
               handleSignOut();
@@ -386,6 +397,7 @@ function App() {
               setIsAuthModalOpen(true);
             }
           }}>{authToken ? 'Sign out' : 'Sign in'}</button>
+
         </nav>
 
         {/* The profile circle */}
@@ -402,62 +414,67 @@ function App() {
       <main id="home">
         {/* Hero section */}
         <section className="hero">
-          <div className="hero-content">
-            <h1>Find your next stay across South Africa</h1>
-            <p>Explore our branches, compare rooms and book with confidence.</p>
+          {showMyBookings ? (
+            <MyBookings authToken={authToken!} onBackToHotels={() => setShowMyBookings(false)}/>
+          ) : (
+            <>
+              <div className="hero-content">
+                <h1>Find your next stay across South Africa</h1>
+                <p>Explore our branches, compare rooms and book with confidence.</p>
 
-            {/* fields sit in one row on desktop and wrap into rows on smaller screens. */}
-            <form className="search-form" onSubmit={handleSearch}>
-              <label className="form-field destination-field">
-                <span>Destination / province</span>
-                <input type="text" value={destination} onChange={(event) => setDestination(event.target.value)}
-                  placeholder="Choose branch or province" />
-              </label>
+                {/* fields sit in one row on desktop and wrap into rows on smaller screens. */}
+                <form className="search-form" onSubmit={handleSearch}>
+                  <label className="form-field destination-field">
+                    <span>Destination / province</span>
+                    <input type="text" value={destination} onChange={(event) => setDestination(event.target.value)}
+                      placeholder="Choose branch or province" />
+                  </label>
 
-              <label className="form-field">
-                <span>Check-in</span>
-                <input type="date" min={new Date().toLocaleDateString('en-CA')} value={checkIn} onChange={(event) =>
-                  setCheckIn(event.target.value)} aria-label="Check-in date" />
-              </label>
+                  <label className="form-field">
+                    <span>Check-in</span>
+                    <input type="date" min={new Date().toLocaleDateString('en-CA')} value={checkIn} onChange={(event) =>
+                      setCheckIn(event.target.value)} aria-label="Check-in date" />
+                  </label>
 
-              <label className="form-field">
-                <span>Check-out</span>
-                <input type="date" min={checkIn || new Date().toLocaleDateString('en-CA')} value={checkOut} onChange={(event) =>
-                  setCheckOut(event.target.value)} aria-label="Check-out date" />
-              </label>
+                  <label className="form-field">
+                    <span>Check-out</span>
+                    <input type="date" min={checkIn || new Date().toLocaleDateString('en-CA')} value={checkOut} onChange={(event) =>
+                      setCheckOut(event.target.value)} aria-label="Check-out date" />
+                  </label>
 
 
-              <label className="form-field guests-field">
-                <span>Guests &amp; rooms</span>
-                <select value={guestsAndRooms} onChange={(event) => {
-                  // Read the selected option and separate its guest and room counts.
-                  const selectedOption = event.target.value;
-                  const guestMatch = selectedOption.match(/^(\d+)\s+guests?/);
-                  const roomMatch = selectedOption.match(/(\d+)\s+rooms?$/);
+                  <label className="form-field guests-field">
+                    <span>Guests &amp; rooms</span>
+                    <select value={guestsAndRooms} onChange={(event) => {
+                      // Read the selected option and separate its guest and room counts.
+                      const selectedOption = event.target.value;
+                      const guestMatch = selectedOption.match(/^(\d+)\s+guests?/);
+                      const roomMatch = selectedOption.match(/(\d+)\s+rooms?$/);
 
-                  // Update each value only when the matching number is found.
-                  if (guestMatch) {
-                    setGuests(Number(guestMatch[1]));
-                  }
+                      // Update each value only when the matching number is found.
+                      if (guestMatch) {
+                        setGuests(Number(guestMatch[1]));
+                      }
 
-                  if (roomMatch) {
-                    setRooms(Number(roomMatch[1]));
-                  }
-                }}>
-                  <option value="1 guest • 1 room">1 guest • 1 room</option>
-                  <option value="2 guests • 1 room">2 guests • 1 room</option>
-                  <option value="3 guests • 1 room">3 guests • 1 room</option>
-                  <option value="4 guests • 1 room">4 guests • 1 room</option>
-                  <option value="2 guests • 2 rooms">2 guests • 2 rooms</option>
-                  <option value="4 guests • 2 rooms">4 guests • 2 rooms</option>
-                </select>
-              </label>
+                      if (roomMatch) {
+                        setRooms(Number(roomMatch[1]));
+                      }
+                    }}>
+                      <option value="1 guest • 1 room">1 guest • 1 room</option>
+                      <option value="2 guests • 1 room">2 guests • 1 room</option>
+                      <option value="3 guests • 1 room">3 guests • 1 room</option>
+                      <option value="4 guests • 1 room">4 guests • 1 room</option>
+                      <option value="2 guests • 2 rooms">2 guests • 2 rooms</option>
+                      <option value="4 guests • 2 rooms">4 guests • 2 rooms</option>
+                    </select>
+                  </label>
 
-              <button className="primary-button search-button" type="submit">Search</button>
-              {/* Shows validation feedback when the search details are invalid. */}
-              {searchError && (<p className="search-error" role="alert">{searchError}</p>)}
-            </form>
-          </div>
+                  <button className="primary-button search-button" type="submit">Search</button>
+                  {/* Shows validation feedback when the search details are invalid. */}
+                  {searchError && (<p className="search-error" role="alert">{searchError}</p>)}
+                </form>
+              </div>
+            </>)}
         </section>
 
         {/* Branches are loaded from PostgreSQL through the existing API */}
@@ -653,7 +670,8 @@ function App() {
 
           {/* View all branches control on mobile */}
           {branches.length > 0 && (<button className="secondary-button view-all-button" type="button" onClick={() => {
-              setDestination(''); setSubmittedDestination(''); }}>View all branches</button>)}
+            setDestination(''); setSubmittedDestination('');
+          }}>View all branches</button>)}
         </section>
 
         {/* benefits section */}
