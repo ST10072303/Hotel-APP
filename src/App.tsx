@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import './App.css';
 import { AuthModal } from './components/auth/AuthModal';
 import { MyBookings } from './components/bookings/MyBookings';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 
 // The API currently returns one object for each hotel/branch.
 interface Accommodation {
@@ -67,6 +68,7 @@ function formatPrice(price: string | number | null): string {
 }
 
 function App() {
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   // Controls whether the login and registration modal is visible.
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
@@ -144,18 +146,34 @@ function App() {
   const exceedsRoomCapacity = selectedRoom !== undefined && guests > selectedRoom.capacity;
 
   // Saves the token after a successful login or registration.
-  function handleAuthenticated(token: string) {
+  async function handleAuthenticated(token: string) {
     sessionStorage.setItem('authToken', token);
     setAuthToken(token);
     setIsAuthModalOpen(false);
-  }
 
-  // Signs the current user out of this browser session.
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to verify your account.');
+      }
+
+      // Only administrators are redirected to the admin area.
+      setShowAdminDashboard(result.data.role === 'admin');
+    } catch {
+      sessionStorage.removeItem('authToken');
+      setAuthToken(null);
+      setShowAdminDashboard(false);
+    }
+  }
+  // Signs the current user/admin out of this browser session.
   function handleSignOut() {
     sessionStorage.removeItem('authToken');
     setAuthToken(null);
+    setShowAdminDashboard(false);
+    setShowMyBookings(false);
   }
-
   // Submits a booking to the authenticated booking API.
   async function handleBooking() {
     // A customer must be signed in before submitting a booking.
@@ -376,44 +394,51 @@ function App() {
 
   return (
     <div className="app">
-      {/* Header */}
-      <header className="site-header">
-        <a className="brand" href="#home" aria-label="Miami Hotels home">Miami Hotels</a>
+      {showAdminDashboard && authToken ? (
+        <AdminDashboard authToken={authToken} onSignOut={handleSignOut}
+          onReturnToHotels={() => setShowAdminDashboard(false)} />
+      ) : (
+        <>
+          {/* Keep the existing customer header, main content and footer here. */}
 
-        <nav className="desktop-navigation" aria-label="Main navigation">
-          <a href="#branches">Branches</a>
-          <a href="#favourites" title="Favourites feature to be added">Favourites</a>
-          <a href="#bookings" onClick={() => {
-            if (!authToken) {
-              setIsAuthModalOpen(true);
-              return;
-            }
-            setShowMyBookings(true);
-          }}>My Bookings</a>
-          <button type="button" className="auth-nav-button" onClick={() => {
-            if (authToken) {
-              handleSignOut();
-            } else {
-              setIsAuthModalOpen(true);
-            }
-          }}>{authToken ? 'Sign out' : 'Sign in'}</button>
-        </nav>
+          {/* Header */}
+          <header className="site-header">
+            <a className="brand" href="#home" aria-label="Miami Hotels home">Miami Hotels</a>
 
-        {/* The profile circle */}
-        <button className="profile-avatar" type="button" aria-label={authToken ? 'Sign out' : 'Open sign-in'}
-          title={authToken ? 'Sign out' : 'Sign in'} onClick={() => {
-            if (authToken) {
-              handleSignOut();
-            } else {
-              setIsAuthModalOpen(true);
-            }
-          }}>{authToken ? 'Out' : 'Me'}</button>
-      </header>
+            <nav className="desktop-navigation" aria-label="Main navigation">
+              <a href="#branches">Branches</a>
+              <a href="#favourites" title="Favourites feature to be added">Favourites</a>
+              <a href="#bookings" onClick={() => {
+                if (!authToken) {
+                  setIsAuthModalOpen(true);
+                  return;
+                }
+                setShowMyBookings(true);
+              }}>My Bookings</a>
+              <button type="button" className="auth-nav-button" onClick={() => {
+                if (authToken) {
+                  handleSignOut();
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}>{authToken ? 'Sign out' : 'Sign in'}</button>
+            </nav>
 
-      <main id="home">
-        {/* Hero section */}
-        <section className="hero">
-          
+            {/* The profile circle */}
+            <button className="profile-avatar" type="button" aria-label={authToken ? 'Sign out' : 'Open sign-in'}
+              title={authToken ? 'Sign out' : 'Sign in'} onClick={() => {
+                if (authToken) {
+                  handleSignOut();
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}>{authToken ? 'Out' : 'Me'}</button>
+          </header>
+
+          <main id="home">
+            {/* Hero section */}
+            <section className="hero">
+
               <div className="hero-content">
                 <h1>Find your next stay across South Africa</h1>
                 <p>Explore our branches, compare rooms and book with confidence.</p>
@@ -470,226 +495,228 @@ function App() {
                   {searchError && (<p className="search-error" role="alert">{searchError}</p>)}
                 </form>
               </div>
-        </section>
-          {showMyBookings ? (
-            <MyBookings authToken={authToken!} onBackToHotels={() => setShowMyBookings(false)}/>
-          ) : (<></>)}
-        {/* Branches are loaded from PostgreSQL through the existing API */}
-        <section className="branches-section" id="branches">
-          <div className="section-heading">
-            <h2>Explore our branches</h2>
-            <p>Find a Miami Hotels branch for your next stay.</p>
-          </div>
+            </section>
+            {showMyBookings ? (
+              <MyBookings authToken={authToken!} onBackToHotels={() => setShowMyBookings(false)} />
+            ) : (<></>)}
+            {/* Branches are loaded from PostgreSQL through the existing API */}
+            <section className="branches-section" id="branches">
+              <div className="section-heading">
+                <h2>Explore our branches</h2>
+                <p>Find a Miami Hotels branch for your next stay.</p>
+              </div>
 
-          {isLoading && (
-            <p className="status-message" role="status">Loading hotel branches…</p>
-          )}
+              {isLoading && (
+                <p className="status-message" role="status">Loading hotel branches…</p>
+              )}
 
-          {!isLoading && errorMessage && (
-            <div className="error-message" role="alert">
-              <p>Unable to load hotel listings.</p>
-              <p>{errorMessage}</p>
-              <button className="secondary-button" type="button" onClick={() => setRetryCount((count) => count + 1)}>Try again</button>
-            </div>
-          )}
+              {!isLoading && errorMessage && (
+                <div className="error-message" role="alert">
+                  <p>Unable to load hotel listings.</p>
+                  <p>{errorMessage}</p>
+                  <button className="secondary-button" type="button" onClick={() => setRetryCount((count) => count + 1)}>Try again</button>
+                </div>
+              )}
 
-          {!isLoading && !errorMessage && branches.length === 0 && (
-            <div className="empty-message">
-              <h3>No branches found</h3>
-              <p>Try another destination or clear your search.</p>
-              <button className="secondary-button" type="button" onClick={() => { setDestination(''); setSubmittedDestination(''); }}>View all branches</button>
-            </div>
-          )}
+              {!isLoading && !errorMessage && branches.length === 0 && (
+                <div className="empty-message">
+                  <h3>No branches found</h3>
+                  <p>Try another destination or clear your search.</p>
+                  <button className="secondary-button" type="button" onClick={() => { setDestination(''); setSubmittedDestination(''); }}>View all branches</button>
+                </div>
+              )}
 
-          {!isLoading && !errorMessage && branches.length > 0 && (
-            <div className="branch-grid">
-              {branches.map((branch) => (
-                <article className="branch-card" key={branch.id}>
-                  <img className="branch-image" src={branch.image_url || 'https://placehold.co/800x500?text=Miami+Hotels'}
-                    alt={`${branch.name} branch`} loading="lazy" onError={(event) => {
-                      // Show a fallback image if the saved image URL fails.
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = 'https://placehold.co/800x500?text=Miami+Hotels';
-                    }} />
+              {!isLoading && !errorMessage && branches.length > 0 && (
+                <div className="branch-grid">
+                  {branches.map((branch) => (
+                    <article className="branch-card" key={branch.id}>
+                      <img className="branch-image" src={branch.image_url || 'https://placehold.co/800x500?text=Miami+Hotels'}
+                        alt={`${branch.name} branch`} loading="lazy" onError={(event) => {
+                          // Show a fallback image if the saved image URL fails.
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = 'https://placehold.co/800x500?text=Miami+Hotels';
+                        }} />
 
-                  <div className="branch-card-content">
-                    <h3>{branch.name}</h3>
-                    <p className="branch-location">{branch.city}, {branch.country}</p>
+                      <div className="branch-card-content">
+                        <h3>{branch.name}</h3>
+                        <p className="branch-location">{branch.city}, {branch.country}</p>
 
-                    <p className="branch-price">
-                      {branch.minimum_price ? `From ${formatPrice(branch.minimum_price)} / night`
-                        : 'Check dates for price'}</p>
+                        <p className="branch-price">
+                          {branch.minimum_price ? `From ${formatPrice(branch.minimum_price)} / night`
+                            : 'Check dates for price'}</p>
 
-                    <div className="branch-card-footer">
-                      <span className="branch-rating">
-                        <span aria-hidden="true">★</span>{' '} {branch.star_rating ?
-                          Number(branch.star_rating).toFixed(1) : 'Not rated'}</span>
+                        <div className="branch-card-footer">
+                          <span className="branch-rating">
+                            <span aria-hidden="true">★</span>{' '} {branch.star_rating ?
+                              Number(branch.star_rating).toFixed(1) : 'Not rated'}</span>
 
-                      <button className="text-button" type="button" onClick={() => void handleViewRooms(branch.id)}
-                        aria-expanded={selectedBranchId === branch.id}>{selectedBranchId === branch.id ?
-                          'Hide details' : 'View rooms'}</button>
+                          <button className="text-button" type="button" onClick={() => void handleViewRooms(branch.id)}
+                            aria-expanded={selectedBranchId === branch.id}>{selectedBranchId === branch.id ?
+                              'Hide details' : 'View rooms'}</button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
+              {/* Branch details modal */}
+              {selectedBranchId !== null && (
+                <div className="branch-modal-backdrop" onMouseDown={(event) => {
+                  // Close only when the backdrop itself is clicked.
+                  if (event.target === event.currentTarget) {
+                    closeBranchModal();
+                  }
+                }}>
+
+                  <section className="branch-modal" role="dialog" aria-modal="true" aria-labelledby="branch-modal-title">
+                    <div className="branch-modal-header">
+                      <div>
+                        <h3 id="branch-modal-title">{branchDetails?.name ?? 'Hotel branch details'}</h3>
+                        <p>Explore the branch and its room types.</p>
+                      </div>
+
+                      <button type="button" className="branch-modal-close" onClick={closeBranchModal}
+                        aria-label="Close branch details">&times;</button>
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
 
-          {/* Branch details modal */}
-          {selectedBranchId !== null && (
-            <div className="branch-modal-backdrop" onMouseDown={(event) => {
-              // Close only when the backdrop itself is clicked.
-              if (event.target === event.currentTarget) {
-                closeBranchModal();
-              }
-            }}>
+                    <div className="branch-modal-content">
+                      {isLoadingDetails && (<p role="status">Loading branch details…</p>)}
+                      {detailsError && (<p className="error-text" role="alert">{detailsError}</p>)}
+                      {branchDetails && !isLoadingDetails && (
+                        <>
+                          <p><strong>Address:</strong>{' '}
+                            {branchDetails.address}, {branchDetails.city}</p>
+                          {branchDetails.description && (<p>{branchDetails.description}</p>)}
 
-              <section className="branch-modal" role="dialog" aria-modal="true" aria-labelledby="branch-modal-title">
-                <div className="branch-modal-header">
-                  <div>
-                    <h3 id="branch-modal-title">{branchDetails?.name ?? 'Hotel branch details'}</h3>
-                    <p>Explore the branch and its room types.</p>
-                  </div>
+                          <h4>Available room types</h4>
+                          {branchDetails.room_types.length === 0 ? (
+                            <p>No room types are listed for this branch yet.</p>
+                          ) : (
+                            <ul className="room-list">{branchDetails.room_types.map((room) => {
+                              const isSelected = selectedRoomId === room.id;
 
-                  <button type="button" className="branch-modal-close" onClick={closeBranchModal}
-                    aria-label="Close branch details">&times;</button>
-                </div>
+                              return (
+                                <li key={room.id} className={isSelected ? 'room-card room-card-selected' : 'room-card'}
+                                  aria-label={`${room.name}${isSelected ? ', selected' : ''}`}>
+                                  <span><strong>{room.name}</strong><small>Up to {room.capacity} guests</small></span>
 
-                <div className="branch-modal-content">
-                  {isLoadingDetails && (<p role="status">Loading branch details…</p>)}
-                  {detailsError && (<p className="error-text" role="alert">{detailsError}</p>)}
-                  {branchDetails && !isLoadingDetails && (
-                    <>
-                      <p><strong>Address:</strong>{' '}
-                        {branchDetails.address}, {branchDetails.city}</p>
-                      {branchDetails.description && (<p>{branchDetails.description}</p>)}
+                                  {isSelected && (<span className="room-selection-status" role="status">Selected</span>)}
+                                  <span className="room-price">{formatPrice(room.price_per_night)} / night</span>
 
-                      <h4>Available room types</h4>
-                      {branchDetails.room_types.length === 0 ? (
-                        <p>No room types are listed for this branch yet.</p>
-                      ) : (
-                        <ul className="room-list">{branchDetails.room_types.map((room) => {
-                          const isSelected = selectedRoomId === room.id;
-
-                          return (
-                            <li key={room.id} className={isSelected ? 'room-card room-card-selected' : 'room-card'}
-                              aria-label={`${room.name}${isSelected ? ', selected' : ''}`}>
-                              <span><strong>{room.name}</strong><small>Up to {room.capacity} guests</small></span>
-
-                              {isSelected && (<span className="room-selection-status" role="status">Selected</span>)}
-                              <span className="room-price">{formatPrice(room.price_per_night)} / night</span>
-
-                              <button type="button" className="select-room-button" onClick={() => setSelectedRoomId(room.id)}
-                                aria-pressed={isSelected} disabled={guests > room.capacity} title={guests > room.capacity
-                                  ? `This room accommodates up to ${room.capacity} guests` : 'Select this room type'}>
-                                {guests > room.capacity ? 'Exceeds Guest Capacity' : isSelected ? 'Room Selected' : 'Select Room'}
-                              </button>
-                            </li>
-                          );
-                        })}
-                        </ul>
-                      )}
-
-                      {/* Booking summary appears after a room type is selected. */}
-                      {selectedRoom && (
-                        <section className="booking-summary">
-                          <h4>Your stay summary</h4>
-
-                          <div className="booking-summary-row">
-                            <span>Hotel branch</span>
-                            <strong>{branchDetails.name}</strong>
-                          </div>
-
-                          <div className="booking-summary-row">
-                            <span>Room type</span>
-                            <strong>{selectedRoom.name}</strong>
-                          </div>
-                          {/* Warns the customer if the selected room is too small. */}
-                          {exceedsRoomCapacity && (<p className="error-text" role="alert">This room accommodates up to {selectedRoom.capacity} guests.
-                            You have selected {guests} guests. Please choose a suitable room type.</p>)}
-
-                          <div className="booking-summary-row">
-                            <span>Check-in</span>
-                            <strong>{checkIn || 'Not selected'}</strong>
-                          </div>
-
-                          <div className="booking-summary-row">
-                            <span>Check-out</span>
-                            <strong>{checkOut || 'Not selected'}</strong>
-                          </div>
-
-                          <div className="booking-summary-row">
-                            <span>Guests and rooms</span>
-                            <strong>{guestsAndRooms}</strong>
-                          </div>
-
-                          {/* Reminds the customer to complete the stay dates. */}
-                          {(!checkIn || !checkOut || stayNights <= 0) && (<p className="booking-summary-note" role="status">Select valid check-in
-                            and check-out dates to calculate your estimated stay total.</p>)}
-
-
-                          <div className="booking-summary-row">
-                            <span>Price per room / night</span>
-                            <strong>{formatPrice(selectedRoom.price_per_night)}</strong>
-                          </div>
-
-                          {stayNights > 0 && (
-                            <>
-                              <div className="booking-summary-row">
-                                <span>Length of stay</span>
-                                <strong>{stayNights} {stayNights === 1 ? 'night' : 'nights'}</strong>
-                              </div>
-
-                              <div className="booking-summary-total">
-                                <span>Estimated total</span>
-                                <strong>{formatPrice(estimatedTotal)}</strong>
-                              </div>
-                            </>
+                                  <button type="button" className="select-room-button" onClick={() => setSelectedRoomId(room.id)}
+                                    aria-pressed={isSelected} disabled={guests > room.capacity} title={guests > room.capacity
+                                      ? `This room accommodates up to ${room.capacity} guests` : 'Select this room type'}>
+                                    {guests > room.capacity ? 'Exceeds Guest Capacity' : isSelected ? 'Room Selected' : 'Select Room'}
+                                  </button>
+                                </li>
+                              );
+                            })}
+                            </ul>
                           )}
-                          <p className="booking-summary-note">This is an estimate, not a confirmed reservation.
-                            Final pricing and room availability must be verified before booking.</p>
-                          {/* Booking submission feedback */}
-                          {bookingMessage && (<p className={bookingError ? 'error-text' : 'booking-success-message'}
-                            role={bookingError ? 'alert' : 'status'}>{bookingMessage}</p>)}
 
-                          {/* Submit the selected room booking */}
-                          <button type="button" className="primary-button" onClick={() => void handleBooking()}
-                            disabled={isBooking || isLoadingDetails || !checkIn || !checkOut || stayNights <= 0 ||
-                              exceedsRoomCapacity}>{isBooking ? 'Submitting booking…' : 'Book this room'}</button>
-                        </section>
+                          {/* Booking summary appears after a room type is selected. */}
+                          {selectedRoom && (
+                            <section className="booking-summary">
+                              <h4>Your stay summary</h4>
+
+                              <div className="booking-summary-row">
+                                <span>Hotel branch</span>
+                                <strong>{branchDetails.name}</strong>
+                              </div>
+
+                              <div className="booking-summary-row">
+                                <span>Room type</span>
+                                <strong>{selectedRoom.name}</strong>
+                              </div>
+                              {/* Warns the customer if the selected room is too small. */}
+                              {exceedsRoomCapacity && (<p className="error-text" role="alert">This room accommodates up to {selectedRoom.capacity} guests.
+                                You have selected {guests} guests. Please choose a suitable room type.</p>)}
+
+                              <div className="booking-summary-row">
+                                <span>Check-in</span>
+                                <strong>{checkIn || 'Not selected'}</strong>
+                              </div>
+
+                              <div className="booking-summary-row">
+                                <span>Check-out</span>
+                                <strong>{checkOut || 'Not selected'}</strong>
+                              </div>
+
+                              <div className="booking-summary-row">
+                                <span>Guests and rooms</span>
+                                <strong>{guestsAndRooms}</strong>
+                              </div>
+
+                              {/* Reminds the customer to complete the stay dates. */}
+                              {(!checkIn || !checkOut || stayNights <= 0) && (<p className="booking-summary-note" role="status">Select valid check-in
+                                and check-out dates to calculate your estimated stay total.</p>)}
+
+
+                              <div className="booking-summary-row">
+                                <span>Price per room / night</span>
+                                <strong>{formatPrice(selectedRoom.price_per_night)}</strong>
+                              </div>
+
+                              {stayNights > 0 && (
+                                <>
+                                  <div className="booking-summary-row">
+                                    <span>Length of stay</span>
+                                    <strong>{stayNights} {stayNights === 1 ? 'night' : 'nights'}</strong>
+                                  </div>
+
+                                  <div className="booking-summary-total">
+                                    <span>Estimated total</span>
+                                    <strong>{formatPrice(estimatedTotal)}</strong>
+                                  </div>
+                                </>
+                              )}
+                              <p className="booking-summary-note">This is an estimate, not a confirmed reservation.
+                                Final pricing and room availability must be verified before booking.</p>
+                              {/* Booking submission feedback */}
+                              {bookingMessage && (<p className={bookingError ? 'error-text' : 'booking-success-message'}
+                                role={bookingError ? 'alert' : 'status'}>{bookingMessage}</p>)}
+
+                              {/* Submit the selected room booking */}
+                              <button type="button" className="primary-button" onClick={() => void handleBooking()}
+                                disabled={isBooking || isLoadingDetails || !checkIn || !checkOut || stayNights <= 0 ||
+                                  exceedsRoomCapacity}>{isBooking ? 'Submitting booking…' : 'Book this room'}</button>
+                            </section>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
+                    </div>
+                  </section>
                 </div>
-              </section>
-            </div>
-          )}
+              )}
 
-          {/* View all branches control on mobile */}
-          {branches.length > 0 && (<button className="secondary-button view-all-button" type="button" onClick={() => {
-            setDestination(''); setSubmittedDestination('');
-          }}>View all branches</button>)}
-        </section>
+              {/* View all branches control on mobile */}
+              {branches.length > 0 && (<button className="secondary-button view-all-button" type="button" onClick={() => {
+                setDestination(''); setSubmittedDestination('');
+              }}>View all branches</button>)}
+            </section>
 
-        {/* benefits section */}
-        <section className="why-stay-section" id="why-us">
-          <h2>Why stay with us?</h2>
-          <p>Comfortable rooms <span>•</span> On-site dining <span>•</span>{' '}
-            Convenient locations <span>•</span> Friendly service</p>
-        </section>
-      </main>
+            {/* benefits section */}
+            <section className="why-stay-section" id="why-us">
+              <h2>Why stay with us?</h2>
+              <p>Comfortable rooms <span>•</span> On-site dining <span>•</span>{' '}
+                Convenient locations <span>•</span> Friendly service</p>
+            </section>
+          </main>
 
-      <footer className="site-footer">
-        <nav aria-label="Footer navigation">
-          <a href="#contact">Contact</a>
-          <span>•</span>
-          <a href="#help">Help</a>
-          <span>•</span>
-          <a href="#terms">Terms</a>
-          <span>•</span>
-          <a href="#privacy">Privacy</a>
-        </nav>
-      </footer>
+          <footer className="site-footer">
+            <nav aria-label="Footer navigation">
+              <a href="#contact">Contact</a>
+              <span>•</span>
+              <a href="#help">Help</a>
+              <span>•</span>
+              <a href="#terms">Terms</a>
+              <span>•</span>
+              <a href="#privacy">Privacy</a>
+            </nav>
+          </footer>
+        </>
+      )}
 
       {isAuthModalOpen && (<AuthModal onClose={() => setIsAuthModalOpen(false)} onAuthenticated={handleAuthenticated} />)}
     </div>
