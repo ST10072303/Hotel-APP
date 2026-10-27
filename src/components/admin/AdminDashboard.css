@@ -162,6 +162,94 @@
   background: #fff;
 }
 
+
+.admin-add-button {
+  padding: 10px 15px;
+  border: 1px solid #3566c9;
+  border-radius: 6px;
+  color: #fff;
+  background: #3566c9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-add-button:hover {
+  background: #2854ac;
+}
+
+.admin-add-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.admin-branch-form {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+  padding: 22px;
+  border: 1px solid #dce2eb;
+  border-radius: 8px;
+  background: #f9fafc;
+}
+
+.admin-branch-form h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.admin-branch-form label {
+  display: grid;
+  gap: 7px;
+  color: #465363;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-branch-form input,
+.admin-branch-form select,
+.admin-branch-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #d5dce7;
+  border-radius: 6px;
+  color: #25313d;
+  background: #fff;
+  font: inherit;
+  font-weight: 400;
+}
+
+.admin-branch-form input:focus,
+.admin-branch-form select:focus,
+.admin-branch-form textarea:focus {
+  border-color: #3566c9;
+  outline: 2px solid #dce7ff;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-form-error, .admin-form-success {
+  margin: 12px 0;
+  padding: 11px 13px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.admin-form-error {
+  color: #a12626;
+  background: #fff0f0;
+}
+
+.admin-form-success {
+  color: #176b3a;
+  background: #eaf7ef;
+}
+
+
 .admin-card-heading {
   display: flex;
   align-items: center;

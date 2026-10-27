@@ -218,7 +218,7 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
         <p>View your hotel reservations and booking details.</p>
       </header>
 
-      {bookings.length === 0 ? (
+      {bookin === 0 ? (
         <div className="my-bookings-empty">
           <h3>No bookings yet</h3>
           <p>When you book a room, your reservation will appear here.</p>
