@@ -1,6 +1,8 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { getAccommodationById, getAllAccommodations } from "../services/accommodationService.js";
+import { pool } from "../config/database.js";
+
 
 // Validate filters received through the URL query string.
 
@@ -64,3 +66,49 @@ export const getAccommodationDetails = async (req: Request, res: Response): Prom
     }
     res.status(200).json({ success: true, data: accommodation });
 };
+
+
+// POST /api/accommodations
+// Creates a new hotel branch for an authenticated administrator.
+const createAccommodationSchema = z.object({name: z.string().trim().min(2).max(150),
+    description: z.string().trim().max(2000).nullable().optional(),
+    address: z.string().trim().min(2).max(255),
+    city: z.string().trim().min(2).max(100),
+    country: z.string().trim().min(2).max(100),
+    star_rating: z.number().finite().min(1).max(5).nullable().optional()});
+
+export const createAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // The route should already require authentication and the admin role.
+    if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({success: false, message: "Administrator access is required."});
+        return;
+    }
+
+    // Validate the submitted branch details.
+    const validation = createAccommodationSchema.safeParse(req.body);
+
+    if (!validation.success) {
+        res.status(400).json({success: false, message: "Invalid hotel branch details.",
+            errors: validation.error.issues.map((issue) => ({field: issue.path.join("."),
+            message: issue.message}))
+        });
+        return;
+    }
+
+    const {name, description, address, city, country, star_rating} = validation.data;
+
+    try {
+        // New branches are active by default.
+        const result = await pool.query(
+            `INSERT INTO accommodations (name, description, address, city, country, star_rating, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+             RETURNING id, name, description, address, city, country, star_rating, is_active`,
+            [name, description ?? null, address, city, country, star_rating ?? null]);
+
+        res.status(201).json({success: true, message: "Hotel branch created successfully.", data: result.rows[0]});
+    } catch (error) {
+        next(error);
+    }
+};
+
+
