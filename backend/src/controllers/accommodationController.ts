@@ -111,4 +111,60 @@ export const createAccommodation = async (req: Request, res: Response, next: Nex
     }
 };
 
+// PUT /api/accommodations/:id
+// Updates an existing hotel branch.
+const updateAccommodationSchema = z.object({name: z.string().trim().min(2).max(150),
+    description: z.string().trim().max(2000).nullable().optional(),
+    address: z.string().trim().min(2).max(255),
+    city: z.string().trim().min(2).max(100),
+    country: z.string().trim().min(2).max(100),
+    star_rating: z.number().finite().min(1).max(5).nullable().optional(),
+    is_active: z.boolean().optional()}).strict();
 
+export const updateAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // Confirm that the user is an administrator.
+    if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({success: false, message: "Administrator access is required."});
+        return;
+    }
+
+    // Validate the branch ID from the URL.
+    const id = req.params.id;
+
+    if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
+        res.status(400).json({success: false, message: "Accommodation ID must be a positive number."});
+        return;
+    }
+
+    // Validate the submitted branch details.
+    const validation = updateAccommodationSchema.safeParse(req.body);
+
+    if (!validation.success) {
+        res.status(400).json({success: false, message: "Invalid hotel branch details.",
+            errors: validation.error.issues.map((issue) => ({field: issue.path.join("."), message: issue.message})),
+        });
+        return;
+    }
+
+    const {name, description, address, city, country, star_rating, is_active, } = validation.data;
+
+    try {
+        // Update the branch and return its latest details.
+        const result = await pool.query(
+            `UPDATE accommodations
+             SET name = $1, description = $2, address = $3, city = $4, country = $5, star_rating = $6, is_active = $7
+             WHERE id = $8
+             RETURNING id, name, description, address, city, country, star_rating, is_active`,
+            [name, description ?? null, address, city, country, star_rating ?? null, is_active ?? true, id]);
+
+        // Return 404 if the branch ID does not exist.
+        if (result.rows.length === 0) {
+            res.status(404).json({success: false, message: "Accommodation not found."});
+            return;
+        }
+
+        res.status(200).json({success: true, message: "Hotel branch updated successfully.", data: result.rows[0]});
+    } catch (error) {
+        next(error);
+    }
+};
