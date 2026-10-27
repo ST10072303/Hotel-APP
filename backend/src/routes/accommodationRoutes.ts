@@ -1,6 +1,6 @@
 import { Router } from "express";
-import {createAccommodation, getAccommodationDetails, getAccommodations,
-        updateAccommodation, } from "../controllers/accommodationController.js";
+import {createAccommodation, deleteAccommodation, getAccommodationDetails,
+        getAccommodations, updateAccommodation,  } from "../controllers/accommodationController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/roleMiddleware.js";
 
@@ -15,5 +15,8 @@ router.post("/", authenticateToken, requireRole("admin"), createAccommodation);
 
 // Admin-only route: update a hotel branch.
 router.put("/:id", authenticateToken, requireRole("admin"), updateAccommodation);
+
+// Admin-only route: deactivate a hotel branch.
+router.delete("/:id", authenticateToken, requireRole("admin"), deleteAccommodation);
 
 export default router;

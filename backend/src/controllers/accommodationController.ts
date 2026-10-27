@@ -168,3 +168,50 @@ export const updateAccommodation = async (req: Request, res: Response, next: Nex
         next(error);
     }
 };
+
+// DELETE /api/accommodations/:id
+// Deactivates a hotel branch without permanently deleting it.
+// Only authenticated administrators may perform this action.
+export const deleteAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // Confirm administrator access.
+    if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({success: false, message: "Administrator access is required."});
+        return;
+    }
+
+    // Validate the branch ID.
+    const id = req.params.id;
+
+    if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
+        res.status(400).json({success: false, message: "Accommodation ID must be a positive integer."});
+        return;
+    }
+
+    try {
+        // Soft-delete: preserve the record and its booking history.
+        const result = await pool.query(
+            `UPDATE accommodations
+             SET is_active = FALSE
+             WHERE id = $1
+               AND is_active = TRUE
+             RETURNING id, name, is_active`, [id]);
+
+        // No active branch was found for this ID.
+        if (result.rows.length === 0) {
+            const existingBranch = await pool.query(
+                `SELECT id, is_active
+                 FROM accommodations
+                 WHERE id = $1`, [id]);
+
+            if (existingBranch.rows.length === 0) {
+                res.status(404).json({success: false, message: "Accommodation not found."});
+                return;
+            }
+            res.status(409).json({success: false, message: "This hotel branch is already inactive."});
+            return;
+        }
+        res.status(200).json({success: true, message: "Hotel branch deactivated successfully.", data: result.rows[0]});
+    } catch (error) {
+        next(error);
+    }
+};

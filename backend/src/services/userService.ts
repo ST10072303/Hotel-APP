@@ -17,9 +17,7 @@ export const getUserById = async (id: string): Promise<UserProfile | null> => {
     `SELECT id, full_name, email, role, is_active
      FROM users
      WHERE id = $1
-     LIMIT 1`,
-    [id]
-  );
+     LIMIT 1`, [id]);
 
   return result.rows[0] ?? null;
 };
