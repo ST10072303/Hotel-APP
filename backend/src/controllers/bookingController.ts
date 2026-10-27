@@ -4,26 +4,18 @@ import { z } from "zod";
 import { pool } from "../config/database.js";
 
 // Validate the information required to create a booking.
-const createBookingSchema = z.object({
-  accommodation_id: z.string().trim().min(1),
-  room_type_id: z.string().trim().min(1),
-  check_in: z.string().date(),
-  check_out: z.string().date(),
-  guest_count: z.number().int().positive(),
-  quantity: z.number().int().positive(),
-  special_requests: z.string().trim().max(2000).optional(),
-}).refine(
-  (data) => data.check_out > data.check_in,
-  {
-    message: "Check-out must be after check-in.",
-    path: ["check_out"],
-  }
+const createBookingSchema = z.object({accommodation_id: z.string().trim().min(1),
+  room_type_id: z.string().trim().min(1), check_in: z.string().date(),
+  check_out: z.string().date(), guest_count: z.number().int().positive(),
+  quantity: z.number().int().positive(), special_requests: z.string().trim().max(2000).optional()
+}).refine((data) => data.check_out > data.check_in,
+  {message: "Check-out must be after check-in.", path: ["check_out"]}
 );
 
 // Calculate the number of nights between two validated dates.
 const calculateNights = (checkIn: string, checkOut: string): number => {
-  const start = new Date(`${checkIn}T00:00:00Z`).getTime();
-  const end = new Date(`${checkOut}T00:00:00Z`).getTime();
+const start = new Date(`${checkIn}T00:00:00Z`).getTime();
+const end = new Date(`${checkOut}T00:00:00Z`).getTime();
 
   return (end - start) / (1000 * 60 * 60 * 24);
 };
@@ -78,14 +70,12 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
 
     // Confirm the accommodation and room type exist and are active.
     // Lock the room type to help prevent concurrent overbooking.
-    const roomResult = await client.query<{id: string; accommodation_id: string; capacity: number;
-      price_per_night: string; total_units: number;}>(
-      `SELECT id, accommodation_id, capacity, price_per_night, total_units
-       FROM room_types
-       WHERE id = $1
-         AND accommodation_id = $2
-         AND is_active = TRUE
-       FOR UPDATE`, [room_type_id, accommodation_id]);
+    const roomResult = await client.query<{id: string; accommodation_id: string;
+    capacity: number; price_per_night: string; total_units: number;}>(
+    `SELECT rt.id, rt.accommodation_id, rt.capacity, rt.price_per_night, rt.total_units
+     FROM room_types rt INNER JOIN accommodations a ON a.id = rt.accommodation_id
+     WHERE rt.id = $1 AND rt.accommodation_id = $2 AND rt.is_active = TRUE AND a.is_active = TRUE
+     FOR UPDATE OF rt`, [room_type_id, accommodation_id]);
 
     const roomType = roomResult.rows[0];
 
