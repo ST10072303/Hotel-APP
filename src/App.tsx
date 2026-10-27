@@ -69,6 +69,7 @@ function formatPrice(price: string | number | null): string {
 
 function App() {
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   // Controls whether the login and registration modal is visible.
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
@@ -234,6 +235,48 @@ function App() {
     }
   }
 
+  // Restores the authenticated user's session after a page refresh.
+  useEffect(() => {
+    const restoreSession = async () => {
+      const savedToken = sessionStorage.getItem('authToken');
+
+      // No saved session exists, so show the normal customer app.
+      if (!savedToken) {
+        setIsRestoringSession(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`,
+          { method: 'GET', headers: { Authorization: `Bearer ${savedToken}` } });
+
+        if (!response.ok) {
+          throw new Error('Your session has expired. Please log in again.');
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+          throw new Error('Unable to restore your session.');
+        }
+
+        // Restore the token and determine which dashboard to display.
+        setAuthToken(savedToken);
+        setShowAdminDashboard(result.data.role === 'admin');
+      } catch (error) {
+        console.error('Session restoration failed:', error);
+
+        sessionStorage.removeItem('authToken');
+        setAuthToken(null);
+        setShowAdminDashboard(false);
+      } finally {
+        setIsRestoringSession(false);
+      }
+    };
+
+    void restoreSession();
+  }, []);
+
   //  Clears the selected room if the guest count changes and the room can no longer accommodate the guests.
   useEffect(() => {
     if (selectedRoom && guests > selectedRoom.capacity) {
@@ -390,6 +433,12 @@ function App() {
     setDetailsError('');
     setIsLoadingDetails(false);
     setSelectedRoomId(null);
+  }
+
+  if (isRestoringSession) {
+    return (
+      <div className="session-loading">Restoring your session...</div>
+    );
   }
 
   return (

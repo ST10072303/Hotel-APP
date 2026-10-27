@@ -225,6 +225,30 @@
   border-color: #3566c9;
   outline: 2px solid #dce7ff;
 }
+/* Actions displayed beside each hotel branch */
+.admin-branch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Edit branch button */
+.admin-edit-button {
+  padding: 4px 8px;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-edit-button:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+}
 
 .admin-form-grid {
   display: grid;
@@ -338,17 +362,62 @@
 }
 
 .admin-status-active {
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: #167947;
-  background: #eaf7ef;
+  color: green;
   font-size: 10px;
-  white-space: nowrap;
+}
+
+/* Edit branch button */
+.admin-edit-button {
+  padding: 8px 16px;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-edit-button:hover {
+  background-color: #2563eb;
+  color: #ffffff;
 }
 
 .admin-empty-message {
   color: #84909c;
   font-size: 12px;
+}
+
+/* Save branch form button */
+.admin-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: 6px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-save-button:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.admin-save-button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+.admin-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .admin-loading, .admin-access-error {

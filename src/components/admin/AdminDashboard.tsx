@@ -36,26 +36,31 @@ interface ApiResponse<T> {
 type AdminSection = 'Dashboard' | 'Branches & Rooms' | 'Reservations' | 'Payments';
 
 export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: AdminDashboardProps) {
+    // Tracks whether the saved login session is being verified.
     const [activeSection, setActiveSection] = useState<AdminSection>('Dashboard');
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [branches, setBranches] = useState<Accommodation[]>([]);
-   
+
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState('');
     // Controls the Add Branch form.
     const [showBranchForm, setShowBranchForm] = useState(false);
+    // Stores the ID of the branch currently being edited.
+    // null value means we are creating a new branch.
+    const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
 
     // Stores the branch details entered by the administrator.
     const [branchForm, setBranchForm] = useState({
         name: '', description: '',
         address: '', city: '', country: 'South Africa', star_rating: ''
-    });
+    }); 
 
     // Tracks form submission and displays feedback.
     const [isSavingBranch, setIsSavingBranch] = useState(false);
     const [branchMessage, setBranchMessage] = useState('');
     const [branchError, setBranchError] = useState(false);
 
+    
     // Verify the session with the backend before loading admin information.
     useEffect(() => {
         const controller = new AbortController();
@@ -96,10 +101,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                 setBranches(branchResult.data);
 
-                // The existing customer booking endpoint is not an admin report.
-                // We will connect the reservations overview after adding a suitable
-                // admin-only reporting endpoint on the backend.
-                
+
             } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                     return;
@@ -117,6 +119,8 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
         return () => controller.abort();
     }, [authToken]);
+
+    
 
     const navigationItems: AdminSection[] = ['Dashboard', 'Branches & Rooms', 'Reservations', 'Payments'];
 
@@ -139,68 +143,110 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         );
     }
 
-    async function handleCreateBranch(
-        event: React.FormEvent<HTMLFormElement>,
-    ) {
+    // Opens the branch form and fills it with the selected branch's details.
+    const startEditingBranch = (branch: Accommodation) => {
+        setEditingBranchId(branch.id);
+        setBranchForm({
+            name: branch.name, description: branch.description ?? '',
+            address: branch.address, city: branch.city, country: branch.country,
+            star_rating: branch.star_rating ?? ''
+        });
+
+        setBranchMessage('');
+        setBranchError(false);
+        setErrorMessage('');
+        setShowBranchForm(true);
+    };
+
+
+    const handleCreateBranch = async (
+        event: React.FormEvent<HTMLFormElement>
+    ) => {
         event.preventDefault();
+
+        setIsSavingBranch(true);
         setBranchMessage('');
         setBranchError(false);
 
-        if (!branchForm.name.trim() || !branchForm.address.trim() ||
-            !branchForm.city.trim() || !branchForm.country.trim()) {
-            setBranchMessage('Please complete all required fields.');
-            setBranchError(true);
-            return;
-        }
+        const payload = {
+            name: branchForm.name.trim(),
+            description: branchForm.description.trim() || null,
+            address: branchForm.address.trim(),
+            city: branchForm.city.trim(),
+            country: branchForm.country.trim(),
+            star_rating: branchForm.star_rating
+                ? Number(branchForm.star_rating)
+                : null,
+        };
 
-        setIsSavingBranch(true);
+        // Editing uses PUT; creating a new branch uses POST.
+        const isEditing = editingBranchId !== null;
+
+        const url = isEditing
+            ? `${API_BASE_URL}/api/accommodations/${editingBranchId}`
+            : `${API_BASE_URL}/api/accommodations`;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/accommodations`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-                    body: JSON.stringify({
-                        name: branchForm.name.trim(),
-                        description: branchForm.description.trim() || null,
-                        address: branchForm.address.trim(),
-                        city: branchForm.city.trim(),
-                        country: branchForm.country.trim(),
-                        star_rating: branchForm.star_rating
-                            ? Number(branchForm.star_rating)
-                            : null
-                    })
-                }
-            );
+            const response = await fetch(url, {
+                method: isEditing ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify(payload),
+            });
 
-            const result = await response.json();
+            const result: ApiResponse<Accommodation> = await response.json();
 
             if (!response.ok || !result.success) {
                 throw new Error(
-                    result.message || 'Unable to create the hotel branch.',
+                    result.message ||
+                    `Unable to ${isEditing ? 'update' : 'create'} the hotel branch.`
                 );
             }
 
-            // Add the newly created branch to the displayed list.
-            const createdBranch = result.data as Accommodation;
-            setBranches((currentBranches) => [...currentBranches, createdBranch]);
-            setBranchMessage('Hotel branch created successfully.');
-            setBranchError(false);
+            if (isEditing) {
+                // Update only the branch that was edited.
+                setBranches((currentBranches) =>
+                    currentBranches.map((branch) =>
+                        branch.id === result.data.id
+                            ? { ...branch, ...result.data }
+                            : branch
+                    )
+                );
+
+                setBranchMessage('Hotel branch updated successfully.');
+            } else {
+                // Add the newly created branch to the list.
+                setBranches((currentBranches) => [
+                    ...currentBranches,
+                    result.data,
+                ]);
+
+                setBranchMessage('Hotel branch created successfully.');
+            }
 
             // Reset the form after a successful save.
             setBranchForm({
-                name: '', description: '', address: '', city: '',
-                country: 'South Africa', star_rating: ''
+                name: '',
+                description: '',
+                address: '',
+                city: '',
+                country: 'South Africa',
+                star_rating: '',
             });
 
+            setEditingBranchId(null);
             setShowBranchForm(false);
         } catch (error) {
-            setBranchMessage(error instanceof Error ? error.message : 'Unable to create the hotel branch.');
             setBranchError(true);
+
+            setBranchMessage(error instanceof Error ? error.message
+                : 'An unexpected error occurred while saving the branch.');
         } finally {
             setIsSavingBranch(false);
         }
-    }
+    };
 
     return (
         <main className="admin-shell">
@@ -269,61 +315,62 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                             </div>
 
                             <button type="button" className="admin-add-button" onClick={() => {
-                                    setBranchMessage('');
-                                    setBranchError(false);
-                                    setShowBranchForm((visible) => !visible);
-                                }}>{showBranchForm ? 'Cancel' : '+ Add branch'}</button>
+                                setBranchMessage('');
+                                setBranchError(false);
+                                setShowBranchForm((visible) => !visible);
+                            }}>{showBranchForm ? 'Cancel' : '+ Add branch'}</button>
                         </div>
 
                         {branchMessage && (
                             <p className={branchError ? 'admin-form-error' : 'admin-form-success'}
                                 role={branchError ? 'alert' : 'status'}>{branchMessage}</p>
                         )}
-
+                        {/* Branch form */}
                         {showBranchForm && (
                             <form className="admin-branch-form" onSubmit={handleCreateBranch}>
-                                <h3>New hotel branch</h3>
+                                <h3>{editingBranchId ? 'Edit hotel branch' : 'New hotel branch'}</h3>
 
                                 <label>Branch name * <input value={branchForm.name} onChange={(event) =>
-                                        setBranchForm({ ...branchForm, name: event.target.value })}
-                                        minLength={2} maxLength={150} required/>
+                                    setBranchForm({ ...branchForm, name: event.target.value })}
+                                    minLength={2} maxLength={150} required />
                                 </label>
 
                                 <label>Street address * <input value={branchForm.address} onChange={(event) =>
-                                        setBranchForm({ ...branchForm, address: event.target.value })
-                                        }minLength={2} maxLength={255}required/>
+                                    setBranchForm({ ...branchForm, address: event.target.value })
+                                } minLength={2} maxLength={255} required />
                                 </label>
 
                                 <div className="admin-form-grid">
                                     <label>City * <input value={branchForm.city} onChange={(event) =>
                                         setBranchForm({ ...branchForm, city: event.target.value })}
-                                        minLength={2} maxLength={100} required/>
+                                        minLength={2} maxLength={100} required />
                                     </label>
 
                                     <label>Country * <input value={branchForm.country} onChange={(event) =>
                                         setBranchForm({ ...branchForm, country: event.target.value })}
-                                        minLength={2} maxLength={100} required/>
+                                        minLength={2} maxLength={100} required />
                                     </label>
 
                                     <label>Star rating <select value={branchForm.star_rating} onChange={(event) =>
-                                            setBranchForm({...branchForm, star_rating: event.target.value})}>
-                                            <option value="">Not rated</option>
-                                            <option value="1">1 star</option>
-                                            <option value="2">2 stars</option>
-                                            <option value="3">3 stars</option>
-                                            <option value="4">4 stars</option>
-                                            <option value="5">5 stars</option>
-                                        </select>
+                                        setBranchForm({ ...branchForm, star_rating: event.target.value })}>
+                                        <option value="">Not rated</option>
+                                        <option value="1">1 star</option>
+                                        <option value="2">2 stars</option>
+                                        <option value="3">3 stars</option>
+                                        <option value="4">4 stars</option>
+                                        <option value="5">5 stars</option>
+                                    </select>
                                     </label>
                                 </div>
 
                                 <label>Description<textarea value={branchForm.description} onChange={(event) =>
-                                        setBranchForm({...branchForm, description: event.target.value})}
-                                        maxLength={2000} rows={3}/>
+                                    setBranchForm({ ...branchForm, description: event.target.value })}
+                                    maxLength={2000} rows={3} />
                                 </label>
 
-                                <button type="submit" className="admin-add-button" disabled={isSavingBranch}>
-                                    {isSavingBranch ? 'Saving branch…' : 'Save branch'}</button>
+                                <button type="submit" className="admin-save-button" disabled={isSavingBranch}> {isSavingBranch
+                                    ? 'Saving...' : editingBranchId ? 'Save changes' : 'Save branch'}
+                                </button>
                             </form>
                         )}
 
@@ -334,10 +381,16 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                 branches.map((branch) => (
                                     <article className="admin-branch-row" key={branch.id}>
                                         <div>
-                                            <strong>{branch.name}</strong>
+                                            <strong>{branch.name} </strong>
                                             <span>{branch.city}, {branch.country}</span>
+                                            <span style={{ color: 'green'}}>Active</span>
+
                                         </div>
-                                        <span className="admin-status-active">Active</span>
+                                                                                
+                                        <div className="admin-branch-actions">
+                                            <button type="button" className="admin-edit-button" onClick={() => 
+                                            startEditingBranch(branch)}>Edit</button>
+                                        </div>
                                     </article>
                                 ))
                             )}
