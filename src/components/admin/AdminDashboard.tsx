@@ -53,14 +53,14 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
     const [branchForm, setBranchForm] = useState({
         name: '', description: '',
         address: '', city: '', country: 'South Africa', star_rating: ''
-    }); 
+    });
 
     // Tracks form submission and displays feedback.
     const [isSavingBranch, setIsSavingBranch] = useState(false);
     const [branchMessage, setBranchMessage] = useState('');
     const [branchError, setBranchError] = useState(false);
 
-    
+
     // Verify the session with the backend before loading admin information.
     useEffect(() => {
         const controller = new AbortController();
@@ -86,21 +86,16 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 }
 
                 setProfile(profileResult.data);
-
                 // Load active hotel branches using the existing API.
-                const branchResponse = await fetch(
-                    `${API_BASE_URL}/api/accommodations?page=1&limit=100`,
-                    { headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal }
-                );
+                const branchResponse = await fetch(`${API_BASE_URL}/api/accommodations?page=1&limit=100`,
+                    { headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal });
 
                 const branchResult = (await branchResponse.json()) as ApiResponse<Accommodation[]>;
 
                 if (!branchResponse.ok || !branchResult.success) {
                     throw new Error(branchResult.message || 'Unable to load hotel branches.');
                 }
-
                 setBranches(branchResult.data);
-
 
             } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
@@ -114,20 +109,14 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 }
             }
         }
-
         void loadAdminData();
-
         return () => controller.abort();
     }, [authToken]);
-
-    
 
     const navigationItems: AdminSection[] = ['Dashboard', 'Branches & Rooms', 'Reservations', 'Payments'];
 
     if (isLoading) {
-        return (
-            <main className="admin-loading" role="status">Verifying administrator access…</main>
-        );
+        return (<main className="admin-loading" role="status">Verifying administrator access…</main>);
     }
 
     if (errorMessage || profile?.role !== 'admin') {
@@ -159,9 +148,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
     };
 
 
-    const handleCreateBranch = async (
-        event: React.FormEvent<HTMLFormElement>
-    ) => {
+    const handleCreateBranch = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         setIsSavingBranch(true);
@@ -169,40 +156,29 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         setBranchError(false);
 
         const payload = {
-            name: branchForm.name.trim(),
-            description: branchForm.description.trim() || null,
-            address: branchForm.address.trim(),
-            city: branchForm.city.trim(),
-            country: branchForm.country.trim(),
-            star_rating: branchForm.star_rating
-                ? Number(branchForm.star_rating)
-                : null,
+            name: branchForm.name.trim(), description: branchForm.description.trim() || null,
+            address: branchForm.address.trim(), city: branchForm.city.trim(),
+            country: branchForm.country.trim(), star_rating: branchForm.star_rating
+                ? Number(branchForm.star_rating) : null
         };
 
         // Editing uses PUT; creating a new branch uses POST.
         const isEditing = editingBranchId !== null;
 
-        const url = isEditing
-            ? `${API_BASE_URL}/api/accommodations/${editingBranchId}`
+        const url = isEditing ? `${API_BASE_URL}/api/accommodations/${editingBranchId}`
             : `${API_BASE_URL}/api/accommodations`;
 
         try {
             const response = await fetch(url, {
                 method: isEditing ? 'PUT' : 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${authToken}`,
-                },
-                body: JSON.stringify(payload),
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                body: JSON.stringify(payload)
             });
 
             const result: ApiResponse<Accommodation> = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(
-                    result.message ||
-                    `Unable to ${isEditing ? 'update' : 'create'} the hotel branch.`
-                );
+                throw new Error(result.message || `Unable to ${isEditing ? 'update' : 'create'} the hotel branch.`);
             }
 
             if (isEditing) {
@@ -210,29 +186,19 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 setBranches((currentBranches) =>
                     currentBranches.map((branch) =>
                         branch.id === result.data.id
-                            ? { ...branch, ...result.data }
-                            : branch
-                    )
-                );
+                            ? { ...branch, ...result.data } : branch));
 
                 setBranchMessage('Hotel branch updated successfully.');
             } else {
                 // Add the newly created branch to the list.
-                setBranches((currentBranches) => [
-                    ...currentBranches,
-                    result.data,
+                setBranches((currentBranches) => [...currentBranches, result.data,
                 ]);
-
                 setBranchMessage('Hotel branch created successfully.');
             }
 
             // Reset the form after a successful save.
             setBranchForm({
-                name: '',
-                description: '',
-                address: '',
-                city: '',
-                country: 'South Africa',
+                name: '', description: '', address: '', city: '', country: 'South Africa',
                 star_rating: '',
             });
 
@@ -245,6 +211,44 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 : 'An unexpected error occurred while saving the branch.');
         } finally {
             setIsSavingBranch(false);
+        }
+    };
+
+
+    // Deactivates a hotel branch after administrator confirmation.
+    // The backend preserves the branch record and its booking history.
+    const handleDeactivateBranch = async (branch: Accommodation) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to deactivate "${branch.name}"? This branch will no longer appear in the public hotel listings.`);
+
+        if (!confirmed) {
+            return;
+        }
+
+        setErrorMessage('');
+        setBranchMessage('');
+        setBranchError(false);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accommodations/${branch.id}`,
+                { method: 'DELETE', headers: { Authorization: `Bearer ${authToken}` } });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Unable to deactivate the hotel branch.');
+            }
+
+            // Remove the deactivated branch from the active branch list.
+            setBranches((currentBranches) =>
+                currentBranches.filter((item) => item.id !== branch.id));
+
+            setBranchMessage(`${branch.name} has been deactivated successfully.`);
+        } catch (error) {
+            setBranchError(true);
+
+            setBranchMessage(error instanceof Error ? error.message
+                : 'An unexpected error occurred while deactivating the branch.');
         }
     };
 
@@ -282,7 +286,6 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                     <button type="button" className="admin-customer-link" onClick={onReturnToHotels}>Return to hotels</button>
                 </header>
-
                 {activeSection === 'Dashboard' && (
                     <>
                         <section className="admin-stat-grid" aria-label="Booking summary">
@@ -383,13 +386,15 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                         <div>
                                             <strong>{branch.name} </strong>
                                             <span>{branch.city}, {branch.country}</span>
-                                            <span style={{ color: 'green'}}>Active</span>
+                                            <span style={{ color: 'green' }}>Active</span>
 
                                         </div>
-                                                                                
+
                                         <div className="admin-branch-actions">
-                                            <button type="button" className="admin-edit-button" onClick={() => 
+                                            <button type="button" className="admin-edit-button" onClick={() =>
                                             startEditingBranch(branch)}>Edit</button>
+                                            <button type="button" className="admin-deactivate-button"
+                                            onClick={() => handleDeactivateBranch(branch)}>De-activate</button>
                                         </div>
                                     </article>
                                 ))
