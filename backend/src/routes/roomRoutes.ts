@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getRoomTypesByAccommodation } from "../controllers/roomController.js";
+import { getRoomTypesByAccommodation, updateRoomType } from "../controllers/roomController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/roleMiddleware.js";
 
@@ -10,5 +10,8 @@ router.use(authenticateToken, requireRole("admin"));
 
 // Retrieve active room types for a specific hotel branch.
 router.get("/branches/:accommodationId", getRoomTypesByAccommodation);
+
+// Update an existing room type.
+router.put("/:roomTypeId", updateRoomType);
 
 export default router;
