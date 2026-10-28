@@ -20,6 +20,18 @@ interface Accommodation {
     is_active?: boolean;
 }
 
+// Represents a room type returned by the room-management API.
+interface RoomType {
+    id: string;
+    accommodation_id: string;
+    name: string;
+    description: string | null;
+    capacity: number;
+    price_per_night: string;
+    total_units: number;
+    is_active: boolean;
+}
+
 interface UserProfile {
     id: string;
     full_name: string;
@@ -54,6 +66,16 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         name: '', description: '',
         address: '', city: '', country: 'South Africa', star_rating: ''
     });
+
+    // Stores room types belonging to the selected hotel branch.
+    const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+
+    // Tracks which branch the administrator is viewing.
+    const [selectedBranchId, setSelectedBranchId] = useState('');
+
+    // Tracks room-loading progress and errors.
+    const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+    const [roomError, setRoomError] = useState('');
 
     // Tracks form submission and displays feedback.
     const [isSavingBranch, setIsSavingBranch] = useState(false);
@@ -211,6 +233,42 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 : 'An unexpected error occurred while saving the branch.');
         } finally {
             setIsSavingBranch(false);
+        }
+    };
+
+    // Loads active room types for the selected hotel branch.
+    const handleViewRooms = async (branch: Accommodation) => {
+        setSelectedBranchId(branch.id);
+        setRoomTypes([]);
+        setRoomError('');
+        setIsLoadingRooms(true);
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/rooms/branches/${branch.id}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+
+            const result: ApiResponse<RoomType[]> = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Unable to load room types.');
+            }
+
+            setRoomTypes(result.data);
+        } catch (error) {
+            setRoomError(
+                error instanceof Error
+                    ? error.message
+                    : 'An unexpected error occurred while loading room types.'
+            );
+        } finally {
+            setIsLoadingRooms(false);
         }
     };
 
@@ -391,22 +449,59 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                         </div>
 
                                         <div className="admin-branch-actions">
+                                            <button type="button" className="admin-view-rooms-button"
+                                                onClick={() => handleViewRooms(branch)}>View</button>
                                             <button type="button" className="admin-edit-button" onClick={() =>
-                                            startEditingBranch(branch)}>Edit</button>
+                                                startEditingBranch(branch)}>Edit</button>
                                             <button type="button" className="admin-deactivate-button"
-                                            onClick={() => handleDeactivateBranch(branch)}>De-activate</button>
+                                                onClick={() => handleDeactivateBranch(branch)}>De-activate</button>
                                         </div>
                                     </article>
                                 ))
                             )}
                         </div>
+
+                        {selectedBranchId && (
+                            <section className="admin-rooms-section">
+                                <h2>Room types —{' '} {branches.find((branch) => branch.id === selectedBranchId)?.name}</h2>
+
+                                {isLoadingRooms && (<p role="status">Loading room types...</p>)}
+
+                                {roomError && (<p className="admin-form-error" role="alert">{roomError}</p>)}
+
+                                {!isLoadingRooms && !roomError && roomTypes.length === 0 && (
+                                    <p className="admin-empty-message">No active room types were found for this branch.</p>)}
+
+                                {!isLoadingRooms && !roomError && roomTypes.length > 0 && (
+                                    <div className="admin-room-list">
+                                        {roomTypes.map((room) => (
+                                            <article className="admin-room-row" key={room.id}>
+                                                <div>
+                                                    <strong>{room.name}</strong>
+                                                    <span>{room.description || 'No description available'}</span>
+                                                    <span>Capacity: {room.capacity} guests</span>
+                                                </div>
+
+                                                <div>
+                                                    <strong>
+                                                        {Number(room.price_per_night).toLocaleString('en-ZA', {style: 'currency', currency: 'ZAR'})}
+                                                    </strong>
+                                                    <span>{room.total_units} units</span>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
                     </section>
                 )}
 
                 {activeSection === 'Reservations' && (
                     <section className="admin-content-card">
                         <h2>Reservations</h2>
-                        <p>The administrator reservation list needs a dedicated, admin-protected backend endpoint.</p>
+                        <p>The administrator reservation list needs admin permissions.</p>
                     </section>
                 )}
 

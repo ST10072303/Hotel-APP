@@ -263,14 +263,74 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .admin-deactivate-button:hover {
   background-color: #dc2626;
   color: #ffffff;
+}
+
+/* Room management section */
+.admin-rooms-section {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid #e5eaf0;
+}
+
+.admin-rooms-section h2 {
+  margin: 0 0 16px;
+  color: #273644;
+  font-size: 16px;
+}
+
+.admin-room-list {
+  display: grid;
+}
+
+.admin-room-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 10px;
+  border-top: 1px solid #e5eaf0;
+}
+
+.admin-room-row > div {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-room-row strong {
+  color: #273644;
+  font-size: 13px;
+}
+
+.admin-room-row span {
+  color: #84909c;
+  font-size: 11px;
+}
+
+.admin-view-rooms-button {
+  padding: 8px 12px;
+  border: 1px solid #3566c9;
+  border-radius: 6px;
+  background: #fff;
+  color: #3566c9;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-view-rooms-button:hover {
+  background: #3566c9;
+  color: #fff;
+}
+
+.admin-view-rooms-button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
 }
 
 .admin-deactivate-button:focus-visible {
@@ -480,3 +540,4 @@
   color: #273746;
   background: #fff;
 }
+
