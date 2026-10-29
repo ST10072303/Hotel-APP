@@ -292,14 +292,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 30px;
   padding: 16px 10px;
   border-top: 1px solid #e5eaf0;
 }
 
-.admin-room-row > div {
+.admin-room-row > div:first-child {
   display: grid;
   gap: 7px;
+}
+
+.admin-room-row > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.admin-room-row div.price-unit-group {
+  display: grid;
+  gap: 4px;
+  text-align: right;
 }
 
 .admin-room-row strong {
@@ -466,7 +478,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
+  min-width: 100px;
   padding: 11px 20px;
   border: none;
   border-radius: 6px;

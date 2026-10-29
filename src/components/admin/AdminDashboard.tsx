@@ -102,6 +102,23 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
     const [roomFormMessage, setRoomFormMessage] = useState("");
     const [roomFormError, setRoomFormError] = useState(false);
 
+    // Opens the room form and fills it with the selected room's details.
+    const startEditingRoomType = (room: RoomType) => {
+        setEditingRoomTypeId(room.id);
+
+        // Populate the form with the existing room values.
+        setRoomForm({name: room.name, description: room.description ?? "",
+            capacity: String(room.capacity), price_per_night: String(room.price_per_night),
+            total_units: String(room.total_units)});
+
+        // Clear previous feedback before editing.
+        setRoomFormMessage("");
+        setRoomFormError(false);
+
+        // Display the form in edit mode.
+        setShowRoomForm(true);
+    };
+
 
 
 
@@ -543,12 +560,13 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                     {/* Add Room Type button */}
                                     <button type="button" className="admin-add-button" onClick={() => {
                                         setEditingRoomTypeId(null);
-                                        setRoomForm({name: "", description: "", capacity: "2", price_per_night: "", total_units: "1"});
+                                        setRoomForm({ name: "", description: "", capacity: "2", price_per_night: "", total_units: "1" });
                                         setRoomFormMessage("");
                                         setRoomFormError(false);
                                         setShowRoomForm((previous) => !previous);
                                     }}>{showRoomForm ? 'Cancel' : '+ Add Room'}</button>
                                 </div>
+
                                 {/* Create or edit room form */}
                                 {showRoomForm && (
                                     <form className="admin-branch-form" onSubmit={handleCreateRoomType}>
@@ -587,21 +605,18 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                         </div>
 
                                         <div className="admin-form-actions">
-
                                             <button type="button" className="admin-deactivate-button" onClick={() => {
                                                 setShowRoomForm(false);
                                                 setEditingRoomTypeId(null);
                                                 setRoomFormMessage("");
-                                                setRoomFormError(false);}}>Cancel
-                                            </button><> </>
+                                                setRoomFormError(false);
+                                            }}>Cancel</button><> </>
 
                                             <button type="submit" className="admin-save-button" disabled={isSavingRoom}>
-                                                {isSavingRoom ? "Saving..." : editingRoomTypeId ? "Save changes" : "Save room"}
+                                                {isSavingRoom ? "Saving..." : editingRoomTypeId ? "Save " : "Save room"}
                                             </button>
 
-                                        
                                         </div>
-
                                         {roomFormMessage && (<p className={roomFormError ? "admin-error" : "admin-success"}>
                                             {roomFormMessage}</p>)}
                                     </form>
@@ -625,12 +640,18 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                                 </div>
 
                                                 <div>
-                                                    <strong>
-                                                        {Number(room.price_per_night).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
-                                                    </strong>
-                                                    <span>{room.total_units} units</span>
+                                                    <div className="price-unit-group">
+                                                        <strong>
+                                                            {Number(room.price_per_night).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
+                                                        </strong>
+                                                        <span>{room.total_units} units</span>
+                                                    </div>
+
+                                                    <button type="button" className="admin-edit-button" onClick={() =>
+                                                     startEditingRoomType(room)}>Edit</button>
                                                 </div>
                                             </article>
+
                                         ))}
                                     </div>
                                 )}

@@ -8,4 +8,4 @@ if (!jwtSecret || jwtSecret.length < 64) {
   throw new Error("Token must be configured.");
 }
 
-export const authConfig = {jwtSecret, jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1h"};
+export const authConfig = {jwtSecret, jwtExpiresIn: process.env.JWT_EXPIRES_IN || "2h"};

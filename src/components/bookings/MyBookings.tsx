@@ -54,7 +54,7 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
   const [cancellationError, setCancellationError] = useState(false);
 
   useEffect(() => {
-    // Avoid making an API request without an authentication token.
+    // Prevent making an API request without an authentication token.
     if (!authToken) {
       setBookings([]);
       setErrorMessage('Please sign in to view your bookings.');
@@ -72,8 +72,7 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/bookings`, {
           method: 'GET', headers: { Authorization: `Bearer ${authToken}` },
-          signal: controller.signal
-        });
+          signal: controller.signal});
 
         const result = (await response.json()) as MyBookingsResponse;
 
@@ -89,8 +88,7 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
         }
 
         setErrorMessage(
-          error instanceof Error ? error.message
-            : 'An unexpected error occurred while loading bookings.');
+          error instanceof Error ? error.message : 'An unexpected error occurred while loading bookings.');
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -112,9 +110,7 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
     }
 
     try {
-      return new Intl.NumberFormat('en-ZA', {
-        style: 'currency', currency
-      }).format(numericAmount);
+      return new Intl.NumberFormat('en-ZA', {style: 'currency', currency}).format(numericAmount);
     } catch {
       return `${currency} ${numericAmount.toFixed(2)}`;
     }
@@ -126,16 +122,13 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
     const [year, month, day] = dateOnly.split('-').map(Number);
 
     return new Date(year, month - 1, day).toLocaleDateString('en-ZA', {
-      day: 'numeric', month: 'short', year: 'numeric'
-    });
+      day: 'numeric', month: 'short', year: 'numeric'});
   }
 
   // Cancels a pending booking belonging to the authenticated customer.
   async function handleCancelBooking(booking: Booking) {
     // Ask the customer to confirm before changing the booking.
-    const confirmed = window.confirm(
-      `Are you sure you want to cancel booking ${booking.booking_reference}?`
-    );
+    const confirmed = window.confirm(`Are you sure you want to cancel booking ${booking.booking_reference}?`);
 
     if (!confirmed) {
       return;
@@ -147,20 +140,10 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
 
     try {
       // Send the cancellation request to the protected backend endpoint.
-      const response = await fetch(
-        `${API_BASE_URL}/api/bookings/${encodeURIComponent(booking.id)}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${encodeURIComponent(booking.id)}`,
+        {method: 'DELETE', headers: {Authorization: `Bearer ${authToken}`}});
 
-      const result = (await response.json()) as {
-        success: boolean;
-        message?: string;
-      };
+      const result = (await response.json()) as {success: boolean, message?: string};
 
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Unable to cancel this booking.');
@@ -218,7 +201,7 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
         <p>View your hotel reservations and booking details.</p>
       </header>
 
-      {bookin === 0 ? (
+      {bookings.length === 0 ? (
         <div className="my-bookings-empty">
           <h3>No bookings yet</h3>
           <p>When you book a room, your reservation will appear here.</p>
