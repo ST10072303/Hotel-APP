@@ -58,15 +58,10 @@ export const getRoomTypesByAccommodation = async (req: Request, res: Response, n
  * Validates the editable fields of a room type.
  * The accommodation ID is intentionally not editable here.
  */
-const updateRoomTypeSchema = z
-  .object({
-    name: z.string().trim().min(2).max(150),
+const updateRoomTypeSchema = z.object({name: z.string().trim().min(2).max(150),
     description: z.string().trim().max(2000).nullable().optional(),
-    capacity: z.number().int().min(1),
-    price_per_night: z.number().finite().min(0.01),
-    total_units: z.number().int().min(1),
-  })
-  .strict();
+    capacity: z.number().int().min(1), price_per_night: z.number().finite().min(0.01),
+    total_units: z.number().int().min(1)}).strict();
 
 // PUT /api/rooms/:roomTypeId
 // Update an existing room type.

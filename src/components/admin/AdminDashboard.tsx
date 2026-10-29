@@ -77,10 +77,32 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
     const [isLoadingRooms, setIsLoadingRooms] = useState(false);
     const [roomError, setRoomError] = useState('');
 
+    // Stores the ID of the room type currently being edited.
+    // null means the form is used to create a new room type.
+    const [editingRoomTypeId, setEditingRoomTypeId] = useState<string | null>(null);
+
     // Tracks form submission and displays feedback.
     const [isSavingBranch, setIsSavingBranch] = useState(false);
     const [branchMessage, setBranchMessage] = useState('');
     const [branchError, setBranchError] = useState(false);
+
+    // Controls whether the add/edit room form is visible.
+    const [showRoomForm, setShowRoomForm] = useState(false);
+
+    // Stores the room form field values.
+    const [roomForm, setRoomForm] = useState({
+        name: "", description: "", capacity: "2",
+        price_per_night: "", total_units: "1"
+    });
+
+    // Tracks whether a room is being saved.
+    const [isSavingRoom, setIsSavingRoom] = useState(false);
+
+    // Stores success or error feedback for the room form.
+    const [roomFormMessage, setRoomFormMessage] = useState("");
+    const [roomFormError, setRoomFormError] = useState(false);
+
+
 
 
     // Verify the session with the backend before loading admin information.
@@ -221,7 +243,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
             // Reset the form after a successful save.
             setBranchForm({
                 name: '', description: '', address: '', city: '', country: 'South Africa',
-                star_rating: '',
+                star_rating: ''
             });
 
             setEditingBranchId(null);
@@ -236,6 +258,70 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         }
     };
 
+
+    const handleCreateRoomType = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!selectedBranchId) {
+            setRoomFormError(true);
+            setRoomFormMessage('Please select a hotel branch first.');
+            return;
+        }
+
+        setIsSavingRoom(true);
+        setRoomFormMessage('');
+        setRoomFormError(false);
+
+        const payload = {
+            name: roomForm.name.trim(), description: roomForm.description.trim() || null,
+            capacity: Number(roomForm.capacity), price_per_night: Number(roomForm.price_per_night),
+            total_units: Number(roomForm.total_units)
+        };
+
+        const isEditing = editingRoomTypeId !== null;
+        const url = isEditing ? `${API_BASE_URL}/api/rooms/${editingRoomTypeId}` : `${API_BASE_URL}/api/rooms`;
+
+        try {
+            const response = await fetch(url, {
+                method: isEditing ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                body: JSON.stringify(isEditing ? payload : { ...payload, accommodation_id: selectedBranchId })
+            });
+
+            const result: ApiResponse<RoomType> = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || `Unable to ${isEditing ? 'update' : 'create'} the room type.`);
+            }
+
+            if (isEditing) {
+                setRoomTypes((currentRooms) => currentRooms.map((room) =>
+                    room.id === result.data.id ? result.data : room)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                );
+
+                setRoomFormMessage('Room type updated successfully.');
+            } else {
+                setRoomTypes((currentRooms) => [...currentRooms, result.data].sort((a, b) =>
+                    a.name.localeCompare(b.name))
+                );
+                setRoomFormMessage('Room type created successfully.');
+            }
+
+            setRoomForm({ name: '', description: '', capacity: '2', price_per_night: '', total_units: '1' });
+            setEditingRoomTypeId(null);
+            setShowRoomForm(false);
+        } catch (error) {
+            setRoomFormError(true);
+            setRoomFormMessage(error instanceof Error ? error.message : 'An unexpected error occurred while saving the room type.');
+        } finally {
+            setIsSavingRoom(false);
+        }
+    };
+
+
+
+
     // Loads active room types for the selected hotel branch.
     const handleViewRooms = async (branch: Accommodation) => {
         setSelectedBranchId(branch.id);
@@ -244,15 +330,8 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         setIsLoadingRooms(true);
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/rooms/branches/${branch.id}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                    },
-                }
-            );
+            const response = await fetch(`${API_BASE_URL}/api/rooms/branches/${branch.id}`,
+                { method: 'GET', headers: { Authorization: `Bearer ${authToken}` } });
 
             const result: ApiResponse<RoomType[]> = await response.json();
 
@@ -262,16 +341,11 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
             setRoomTypes(result.data);
         } catch (error) {
-            setRoomError(
-                error instanceof Error
-                    ? error.message
-                    : 'An unexpected error occurred while loading room types.'
-            );
+            setRoomError(error instanceof Error ? error.message : 'An unexpected error occurred while loading room types.');
         } finally {
             setIsLoadingRooms(false);
         }
     };
-
 
     // Deactivates a hotel branch after administrator confirmation.
     // The backend preserves the branch record and its booking history.
@@ -333,7 +407,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                     <button type="button" onClick={onSignOut}>Sign out</button>
                 </div>
             </aside>
-
+            {/* header section */}
             <section className="admin-main-panel">
                 <header className="admin-topbar">
                     <div>
@@ -344,6 +418,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                     <button type="button" className="admin-customer-link" onClick={onReturnToHotels}>Return to hotels</button>
                 </header>
+                {/* dashboad */}
                 {activeSection === 'Dashboard' && (
                     <>
                         <section className="admin-stat-grid" aria-label="Booking summary">
@@ -362,7 +437,6 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                 <strong>—</strong>
                             </article>
                         </section>
-
                     </>
                 )}
 
@@ -386,6 +460,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                             <p className={branchError ? 'admin-form-error' : 'admin-form-success'}
                                 role={branchError ? 'alert' : 'status'}>{branchMessage}</p>
                         )}
+
                         {/* Branch form */}
                         {showBranchForm && (
                             <form className="admin-branch-form" onSubmit={handleCreateBranch}>
@@ -449,7 +524,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                         </div>
 
                                         <div className="admin-branch-actions">
-                                            <button type="button" className="admin-view-rooms-button"
+                                            <button type="button" className="admin-edit-button"
                                                 onClick={() => handleViewRooms(branch)}>View</button>
                                             <button type="button" className="admin-edit-button" onClick={() =>
                                                 startEditingBranch(branch)}>Edit</button>
@@ -463,7 +538,74 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                         {selectedBranchId && (
                             <section className="admin-rooms-section">
-                                <h2>Room types —{' '} {branches.find((branch) => branch.id === selectedBranchId)?.name}</h2>
+                                <div className="admin-card-heading">
+                                    <h2>Room types -{' '} {branches.find((branch) => branch.id === selectedBranchId)?.name}</h2>
+                                    {/* Add Room Type button */}
+                                    <button type="button" className="admin-add-button" onClick={() => {
+                                        setEditingRoomTypeId(null);
+                                        setRoomForm({name: "", description: "", capacity: "2", price_per_night: "", total_units: "1"});
+                                        setRoomFormMessage("");
+                                        setRoomFormError(false);
+                                        setShowRoomForm((previous) => !previous);
+                                    }}>{showRoomForm ? 'Cancel' : '+ Add Room'}</button>
+                                </div>
+                                {/* Create or edit room form */}
+                                {showRoomForm && (
+                                    <form className="admin-branch-form" onSubmit={handleCreateRoomType}>
+                                        <h3>{editingRoomTypeId ? "Edit room type" : "New room type"}</h3>
+
+                                        <div className="admin-form-grid">
+                                            <label>Room name
+                                                <input type="text" value={roomForm.name} onChange={(event) =>
+                                                    setRoomForm({ ...roomForm, name: event.target.value })} required
+                                                    minLength={2} maxLength={150} placeholder="e.g. Standard Room" />
+                                            </label>
+
+                                            <label>Description
+                                                <textarea value={roomForm.description} onChange={(event) =>
+                                                    setRoomForm({ ...roomForm, description: event.target.value })}
+                                                    maxLength={2000} placeholder="Describe the room" />
+                                            </label>
+
+                                            <label>Capacity
+                                                <input type="number" value={roomForm.capacity} onChange={(event) =>
+                                                    setRoomForm({ ...roomForm, capacity: event.target.value })}
+                                                    min="1" step="1" required />
+                                            </label>
+
+                                            <label>Price per night (ZAR)
+                                                <input type="number" value={roomForm.price_per_night} onChange={(event) =>
+                                                    setRoomForm({ ...roomForm, price_per_night: event.target.value })}
+                                                    min="0.01" step="0.01" required placeholder="850.00" />
+                                            </label>
+
+                                            <label>Total units
+                                                <input type="number" value={roomForm.total_units} onChange={(event) =>
+                                                    setRoomForm({ ...roomForm, total_units: event.target.value })}
+                                                    min="1" step="1" required />
+                                            </label>
+                                        </div>
+
+                                        <div className="admin-form-actions">
+
+                                            <button type="button" className="admin-deactivate-button" onClick={() => {
+                                                setShowRoomForm(false);
+                                                setEditingRoomTypeId(null);
+                                                setRoomFormMessage("");
+                                                setRoomFormError(false);}}>Cancel
+                                            </button><> </>
+
+                                            <button type="submit" className="admin-save-button" disabled={isSavingRoom}>
+                                                {isSavingRoom ? "Saving..." : editingRoomTypeId ? "Save changes" : "Save room"}
+                                            </button>
+
+                                        
+                                        </div>
+
+                                        {roomFormMessage && (<p className={roomFormError ? "admin-error" : "admin-success"}>
+                                            {roomFormMessage}</p>)}
+                                    </form>
+                                )}
 
                                 {isLoadingRooms && (<p role="status">Loading room types...</p>)}
 
@@ -484,7 +626,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                                                 <div>
                                                     <strong>
-                                                        {Number(room.price_per_night).toLocaleString('en-ZA', {style: 'currency', currency: 'ZAR'})}
+                                                        {Number(room.price_per_night).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
                                                     </strong>
                                                     <span>{room.total_units} units</span>
                                                 </div>

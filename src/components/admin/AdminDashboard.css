@@ -312,25 +312,9 @@
   font-size: 11px;
 }
 
-.admin-view-rooms-button {
-  padding: 8px 12px;
-  border: 1px solid #3566c9;
-  border-radius: 6px;
-  background: #fff;
-  color: #3566c9;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .admin-view-rooms-button:hover {
   background: #3566c9;
   color: #fff;
-}
-
-.admin-view-rooms-button:focus-visible {
-  outline: 3px solid #93c5fd;
-  outline-offset: 3px;
 }
 
 .admin-deactivate-button:focus-visible {
