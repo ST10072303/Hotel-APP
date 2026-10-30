@@ -152,23 +152,15 @@ export const MyBookings = ({ authToken, onBackToHotels }: MyBookingsProps) => {
       // Update the displayed booking immediately after successful cancellation.
       setBookings((currentBookings) =>
         currentBookings.map((currentBooking) =>
-          currentBooking.id === booking.id
-            ? { ...currentBooking, status: 'cancelled' }
-            : currentBooking
-        )
-      );
+          currentBooking.id === booking.id ? { ...currentBooking, status: 'cancelled' } : currentBooking));
 
       setCancellationMessage(
-        result.message || 'Booking cancelled successfully.'
-      );
+        result.message || 'Booking cancelled successfully.');
     } catch (error) {
       setCancellationError(true);
 
       setCancellationMessage(
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred while cancelling the booking.'
-      );
+      error instanceof Error ? error.message : 'An unexpected error occurred while cancelling the booking.');
     } finally {
       setCancellingBookingId(null);
     }

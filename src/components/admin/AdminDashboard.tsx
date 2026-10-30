@@ -107,9 +107,11 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         setEditingRoomTypeId(room.id);
 
         // Populate the form with the existing room values.
-        setRoomForm({name: room.name, description: room.description ?? "",
+        setRoomForm({
+            name: room.name, description: room.description ?? "",
             capacity: String(room.capacity), price_per_night: String(room.price_per_night),
-            total_units: String(room.total_units)});
+            total_units: String(room.total_units)
+        });
 
         // Clear previous feedback before editing.
         setRoomFormMessage("");
@@ -401,6 +403,46 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         }
     };
 
+    // Deactivates a room type without permanently deleting it.
+    const handleDeactivateRoomType = async (roomTypeId: string) => {
+        // Ask the admin to confirm before deactivating the room.
+        const confirmed = window.confirm("Are you sure you want to deactivate this room?");
+
+        if (!confirmed) {
+            return;
+        }
+
+        setRoomFormMessage("");
+        setRoomFormError(false);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/rooms/${roomTypeId}`,
+                { method: "DELETE", headers: { Authorization: `Bearer ${authToken}` } }
+            );
+
+            const result: ApiResponse<RoomType> = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Failed to deactivate room type.");
+            }
+
+            // Remove the deactivated room from the currently displayed active rooms.
+            setRoomTypes((currentRooms) => currentRooms.filter((room) => room.id !== roomTypeId));
+            setRoomFormMessage("Room type deactivated successfully.");
+            setRoomFormError(false);
+
+            // Close the edit form if this room was being edited.
+            if (editingRoomTypeId === roomTypeId) {
+                setShowRoomForm(false);
+                setEditingRoomTypeId(null);
+            }
+        } catch (error) {
+            setRoomFormError(true);
+            setRoomFormMessage(error instanceof Error ? error.message
+                : "An unexpected error occurred while deactivating the room type.");
+        }
+    };
+
     return (
         <main className="admin-shell">
             <aside className="admin-sidebar">
@@ -537,16 +579,30 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                             <strong>{branch.name} </strong>
                                             <span>{branch.city}, {branch.country}</span>
                                             <span style={{ color: 'green' }}>Active</span>
-
                                         </div>
 
                                         <div className="admin-branch-actions">
-                                            <button type="button" className="admin-edit-button"
-                                                onClick={() => handleViewRooms(branch)}>View</button>
-                                            <button type="button" className="admin-edit-button" onClick={() =>
-                                                startEditingBranch(branch)}>Edit</button>
-                                            <button type="button" className="admin-deactivate-button"
-                                                onClick={() => handleDeactivateBranch(branch)}>De-activate</button>
+                                            <button
+                                                type="button"
+                                                className="admin-edit-button"
+                                                onClick={() => handleViewRooms(branch)}
+                                            >
+                                                View
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="admin-edit-button"
+                                                onClick={() => startEditingBranch(branch)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="admin-deactivate-button"
+                                                onClick={() => handleDeactivateBranch(branch)}
+                                            >
+                                                De-activate
+                                            </button>
                                         </div>
                                     </article>
                                 ))
@@ -633,25 +689,27 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                     <div className="admin-room-list">
                                         {roomTypes.map((room) => (
                                             <article className="admin-room-row" key={room.id}>
-                                                <div>
+                                                <div className="admin-room-details">
                                                     <strong>{room.name}</strong>
                                                     <span>{room.description || 'No description available'}</span>
                                                     <span>Capacity: {room.capacity} guests</span>
                                                 </div>
 
-                                                <div>
-                                                    <div className="price-unit-group">
-                                                        <strong>
-                                                            {Number(room.price_per_night).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
-                                                        </strong>
-                                                        <span>{room.total_units} units</span>
-                                                    </div>
+                                                <div className="price-unit-group">
+                                                    <strong>
+                                                        {Number(room.price_per_night).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
+                                                    </strong>
+                                                    <span>{room.total_units} units</span>
+                                                </div>
 
-                                                    <button type="button" className="admin-edit-button" onClick={() =>
-                                                     startEditingRoomType(room)}>Edit</button>
+                                                {/* Column 3: Action buttons on the far right */}
+                                                <div className="admin-room-actions">
+                                                    <button type="button" className="admin-edit-button"
+                                                        onClick={() => startEditingRoomType(room)}>Edit</button>
+                                                    <button type="button" className="admin-deactivate-button"
+                                                        onClick={() => handleDeactivateRoomType(room.id)}>Deactivate</button>
                                                 </div>
                                             </article>
-
                                         ))}
                                     </div>
                                 )}

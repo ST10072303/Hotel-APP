@@ -225,12 +225,6 @@
   border-color: #3566c9;
   outline: 2px solid #dce7ff;
 }
-/* Actions displayed beside each hotel branch */
-.admin-branch-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* Edit branch button */
 .admin-edit-button {
@@ -289,29 +283,29 @@
 }
 
 .admin-room-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 30px;
+  gap: 350px;
   padding: 16px 10px;
   border-top: 1px solid #e5eaf0;
 }
 
-.admin-room-row > div:first-child {
+.admin-room-details {
   display: grid;
   gap: 7px;
 }
 
-.admin-room-row > div:last-child {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.admin-room-row div.price-unit-group {
+.price-unit-group {
   display: grid;
   gap: 4px;
   text-align: right;
+}
+
+.admin-room-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .admin-room-row strong {
@@ -431,9 +425,16 @@
   border-top: 1px solid #e5eaf0;
 }
 
-.admin-branch-row > div {
+.admin-branch-row > div:first-child {
   display: grid;
   gap: 6px;
+}
+
+.admin-branch-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
 }
 
 .admin-branch-row strong {
