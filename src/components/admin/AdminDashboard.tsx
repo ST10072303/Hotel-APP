@@ -443,6 +443,40 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         }
     };
 
+    // Reactivates a previously deactivated room type.
+    const handleActivateRoomType = async (roomTypeId: string) => {
+        const confirmed = window.confirm("Are you sure you want to activate this room type?");
+
+        if (!confirmed) {
+            return;
+        }
+
+        setRoomFormMessage("");
+        setRoomFormError(false);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/rooms/${roomTypeId}/activate`,
+                { method: "PATCH", headers: { Authorization: `Bearer ${authToken}` } });
+
+            const result: ApiResponse<RoomType> = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Failed to activate room type.");
+            }
+
+            // Update the room's status in the existing room list.
+            setRoomTypes((currentRooms) =>
+                currentRooms.map((room) => room.id === roomTypeId ? result.data : room));
+
+            setRoomFormMessage("Room type activated successfully.");
+            setRoomFormError(false);
+        } catch (error) {
+            setRoomFormError(true);
+            setRoomFormMessage(error instanceof Error ? error.message
+                : "An unexpected error occurred while activating the room type.");
+        }
+    };
+
     return (
         <main className="admin-shell">
             <aside className="admin-sidebar">
@@ -582,27 +616,12 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                         </div>
 
                                         <div className="admin-branch-actions">
-                                            <button
-                                                type="button"
-                                                className="admin-edit-button"
-                                                onClick={() => handleViewRooms(branch)}
-                                            >
-                                                View
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="admin-edit-button"
-                                                onClick={() => startEditingBranch(branch)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="admin-deactivate-button"
-                                                onClick={() => handleDeactivateBranch(branch)}
-                                            >
-                                                De-activate
-                                            </button>
+                                            <button type="button" className="admin-edit-button"
+                                                onClick={() => handleViewRooms(branch)}>View</button>
+                                            <button type="button" className="admin-edit-button"
+                                                onClick={() => startEditingBranch(branch)}>Edit</button>
+                                            <button type="button" className="admin-deactivate-button"
+                                                onClick={() => handleDeactivateBranch(branch)}>De-activate</button>
                                         </div>
                                     </article>
                                 ))
@@ -706,8 +725,13 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                                 <div className="admin-room-actions">
                                                     <button type="button" className="admin-edit-button"
                                                         onClick={() => startEditingRoomType(room)}>Edit</button>
-                                                    <button type="button" className="admin-deactivate-button"
-                                                        onClick={() => handleDeactivateRoomType(room.id)}>Deactivate</button>
+                                                    {room.is_active ? (
+                                                        <button type="button" className="admin-deactivate-button"
+                                                            onClick={() => handleDeactivateRoomType(room.id)}>Deactivate</button>
+                                                    ) : (
+                                                        <button type="button" className="admin-save-button"
+                                                            onClick={() => handleActivateRoomType(room.id)}>Activate</button>
+                                                    )}
                                                 </div>
                                             </article>
                                         ))}

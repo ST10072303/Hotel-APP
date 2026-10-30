@@ -27,7 +27,8 @@ export const createRoomType = async (req: Request, res: Response, next: NextFunc
   if (!validation.success) {
     res.status(400).json({
       success: false, message: "Invalid room type details.", errors: validation.error.issues.map((issue) => ({
-        field: issue.path.join("."), message: issue.message}))
+        field: issue.path.join("."), message: issue.message
+      }))
     });
     return;
   }
@@ -95,12 +96,12 @@ export const getRoomTypesByAccommodation = async (req: Request, res: Response, n
       return;
     }
 
-    // Retrieve active room types belonging to this branch.
+    // Retrieve both active and inactive room types for the admin dashboard.
     const roomResult = await pool.query(
       `SELECT id, accommodation_id, name, description, capacity, price_per_night, total_units, is_active
-       FROM room_types
-       WHERE accommodation_id = $1 AND is_active = TRUE
-       ORDER BY name ASC, id ASC`, [accommodationId]);
+      FROM room_types
+      WHERE accommodation_id = $1
+      ORDER BY is_active DESC, name ASC, id ASC`, [accommodationId]);
 
     res.status(200).json({ success: true, count: roomResult.rows.length, data: roomResult.rows });
   } catch (error) {
@@ -109,10 +110,8 @@ export const getRoomTypesByAccommodation = async (req: Request, res: Response, n
 };
 
 
-/**
- * Validates the editable fields of a room type.
- * The accommodation ID is intentionally not editable here.
- */
+// Validates the editable fields of a room type.
+// The accommodation ID is intentionally not editable here.
 const updateRoomTypeSchema = z.object({
   name: z.string().trim().min(2).max(150),
   description: z.string().trim().max(2000).nullable().optional(),
@@ -174,12 +173,12 @@ export const deactivateRoomType = async (req: Request, res: Response, next: Next
     const roomTypeId = Number(req.params.roomTypeId);
 
     if (!Number.isInteger(roomTypeId) || roomTypeId <= 0) {
-      return res.status(400).json({success: false, message: "Room ID must be a positive number."});
+      return res.status(400).json({ success: false, message: "Room ID must be a positive number." });
     }
 
     // Only administrators are allowed to deactivate room types.
     if (!req.user || req.user.role !== "admin") {
-      return res.status(403).json({success: false, message: "Admin access is required to deactivate room types."});
+      return res.status(403).json({ success: false, message: "Admin access is required to deactivate room types." });
     }
 
     // Mark the room type as inactive instead of deleting it.
@@ -191,10 +190,42 @@ export const deactivateRoomType = async (req: Request, res: Response, next: Next
 
     // No active room type matched the supplied ID.
     if (result.rows.length === 0) {
-      return res.status(404).json({success: false, message: "Active room not found."});
+      return res.status(404).json({ success: false, message: "Active room not found." });
     }
 
-    return res.status(200).json({success: true, message: "Room deactivated successfully.", data: result.rows[0]});
+    return res.status(200).json({ success: true, message: "Room deactivated successfully.", data: result.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Reactivates a previously deactivated room type.
+export const activateRoomType = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const roomTypeId = Number(req.params.roomTypeId);
+
+    // Validate the room type ID.
+    if (!Number.isInteger(roomTypeId) || roomTypeId <= 0) {
+      return res.status(400).json({ success: false, message: "Room type ID must be a positive integer." });
+    }
+
+    // Ensure the request belongs to an administrator.
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Admin access is required to activate room types." });
+    }
+
+    // Only reactivate room types belonging to an active branch.
+    const result = await pool.query(`UPDATE room_types AS rt SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP
+            FROM accommodations AS a
+            WHERE rt.id = $1 AND rt.accommodation_id = a.id AND rt.is_active = FALSE AND a.is_active = TRUE
+            RETURNING rt.id, rt.accommodation_id, rt.name, rt.description, rt.capacity, rt.price_per_night,
+            rt.total_units, rt.is_active`, [roomTypeId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Inactive room type not found or its hotel branch is inactive." });
+    }
+
+    return res.status(200).json({ success: true, message: "Room type activated successfully.", data: result.rows[0] });
   } catch (error) {
     next(error);
   }
