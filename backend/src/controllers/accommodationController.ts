@@ -3,9 +3,7 @@ import { z } from "zod";
 import { getAccommodationById, getAllAccommodations } from "../services/accommodationService.js";
 import { pool } from "../config/database.js";
 
-
 // Validate filters received through the URL query string.
-
 const accommodationFiltersSchema = z.object({
     city: z.string().trim().min(1).max(100).optional(),
     search: z.string().trim().min(1).max(100).optional(),
@@ -16,19 +14,13 @@ const accommodationFiltersSchema = z.object({
     // Pagination: positive page number, maximum 100 results per page.
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
-
-    sortBy: z.enum(["name", "minimum_price", "star_rating"])
-        .default("name"),
-
-    sortOrder: z.enum(["asc", "desc"])
-        .default("asc"),
+    sortBy: z.enum(["name", "minimum_price", "star_rating"]).default("name"),
+    sortOrder: z.enum(["asc", "desc"]).default("asc"),
 
 })
     .strict()
-    .refine(
-        (filters) => filters.minPrice === undefined || filters.maxPrice === undefined || filters.minPrice <= filters.maxPrice,
-        {message: "minPrice cannot be greater than maxPrice"}
-    );
+    .refine((filters) => filters.minPrice === undefined || filters.maxPrice === undefined || filters.minPrice <= filters.maxPrice,
+        {message: "minPrice cannot be greater than maxPrice"});
 
 // GET /api/accommodations
 // List accommodations with optional filters and pagination.
@@ -54,7 +46,7 @@ export const getAccommodationDetails = async (req: Request, res: Response): Prom
 
     // Ensure the route parameter is a single string.
     if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
-        res.status(400).json({ success: false, message: "Accommodation ID must be a positive integer" });
+        res.status(400).json({ success: false, message: "Accommodation ID must be a positive number" });
         return;
     }
 
@@ -183,7 +175,7 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
     const id = req.params.id;
 
     if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
-        res.status(400).json({success: false, message: "Accommodation ID must be a positive integer."});
+        res.status(400).json({success: false, message: "Accommodation ID must be a positive number."});
         return;
     }
 
@@ -192,8 +184,7 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
         const result = await pool.query(
             `UPDATE accommodations
              SET is_active = FALSE
-             WHERE id = $1
-               AND is_active = TRUE
+             WHERE id = $ AND is_active = TRUE
              RETURNING id, name, is_active`, [id]);
 
         // No active branch was found for this ID.
@@ -207,7 +198,7 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
                 res.status(404).json({success: false, message: "Accommodation not found."});
                 return;
             }
-            res.status(409).json({success: false, message: "This hotel branch is already inactive."});
+            res.status(409).json({success: false, message: "This hotel branch is inactive."});
             return;
         }
         res.status(200).json({success: true, message: "Hotel branch deactivated successfully.", data: result.rows[0]});

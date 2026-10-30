@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createRoomType, getRoomTypesByAccommodation, updateRoomType, } from "../controllers/roomController.js";
+import { createRoomType, deactivateRoomType, getRoomTypesByAccommodation, updateRoomType, } from "../controllers/roomController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/roleMiddleware.js";
 
@@ -16,5 +16,8 @@ router.get("/branches/:accommodationId", getRoomTypesByAccommodation);
 
 // Update an existing room type.
 router.put("/:roomTypeId", updateRoomType);
+
+// Deactivate a room type.
+router.delete("/:roomTypeId", deactivateRoomType);
 
 export default router;

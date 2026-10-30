@@ -83,7 +83,7 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
       await client.query("ROLLBACK");
       transactionStarted = false;
 
-      res.status(404).json({success: false, message: "The selected room type was not found or is unavailable."});
+      res.status(404).json({success: false, message: "The selected room was not found or is unavailable."});
       return;
     }
 
@@ -145,8 +145,7 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
     const booking = bookingResult.rows[0];
 
     // Link the selected room type and quantity to the booking.
-    await client.query(
-      `INSERT INTO booking_rooms (booking_id, room_type_id, quantity, price_per_night)
+    await client.query(`INSERT INTO booking_rooms (booking_id, room_type_id, quantity, price_per_night)
        VALUES ($1, $2, $3, $4)`, [booking.id, room_type_id, quantity, pricePerNight]);
 
     // Commit both database inserts together.
@@ -172,7 +171,6 @@ export const createBooking = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-
 // GET /api/bookings
 // Retrieves bookings belonging only to the authenticated customer.
 export const getMyBookings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -188,10 +186,8 @@ export const getMyBookings = async (req: Request, res: Response, next: NextFunct
     const result = await pool.query(`SELECT b.id, b.booking_reference, b.check_in, b.check_out,
          b.guest_count, b.total_amount, b.currency, b.status, b.special_requests, b.created_at,
          a.name AS accommodation_name, a.address AS accommodation_address, a.city AS accommodation_city,
-         COALESCE(
-           json_agg(
-             json_build_object('room_type_id', rt.id, 'room_name', rt.name, 'quantity', br.quantity,
-               'price_per_night', br.price_per_night)
+         COALESCE(json_agg(json_build_object('room_type_id', rt.id, 'room_name', rt.name, 'quantity', br.quantity,
+          'price_per_night', br.price_per_night)
            ) FILTER (WHERE br.id IS NOT NULL), '[]'::json) AS rooms
        FROM bookings b
        INNER JOIN accommodations a ON a.id = b.accommodation_id
@@ -206,7 +202,6 @@ export const getMyBookings = async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 };
-
 
 // DELETE /api/bookings/:bookingId
 export const cancelBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
