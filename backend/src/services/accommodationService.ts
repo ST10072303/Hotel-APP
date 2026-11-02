@@ -157,8 +157,9 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
   // The sort direction is restricted to ASC or DESC.
   const sortDirection = sortOrder === "desc" ? "DESC" : "ASC";
 
- const query = `SELECT a.id, a.name, a.description, a.address, a.city, a.country, a.star_rating, a.is_active,
-      MIN(rt.price_per_night) AS minimum_price,
+ const query = `SELECT a.id, a.name, a.description, a.address, a.city, a.country,
+       a.star_rating, a.is_active, 
+       MIN(rt.price_per_night) AS minimum_price,
       (SELECT ai.image_url
         FROM accommodation_images ai
         WHERE ai.accommodation_id = a.id
