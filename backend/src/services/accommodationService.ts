@@ -1,29 +1,5 @@
 import { pool } from "../config/database.js";
 
-export interface Accommodation {
-  id: string;
-  name: string;
-  description: string | null;
-  address: string;
-  city: string;
-  country: string;
-  star_rating: string | null;
-  minimum_price: string | null;
-  image_url: string | null;
-}
-
-export interface AccommodationFilters {
-  city?: string;
-  search?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minRating?: number;
-  page?: number;
-  limit?: number;
-  sortBy?: "name" | "minimum_price" | "star_rating";
-  sortOrder?: "asc" | "desc";
-}
-
 export interface PaginatedAccommodations {
   data: Accommodation[];
   total: number;
@@ -110,7 +86,7 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
   // Include inactive branches only when explicitly requested by an administrator.
   const conditions: string[] = [];
   if (!filters.includeInactive) {
-  conditions.push("a.is_active = TRUE");  
+    conditions.push("a.is_active = TRUE");
   }
   const values: (string | number)[] = [];
 
@@ -151,14 +127,18 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
   }
 
   // Allow only predefined sorting expressions.
-  const sortColumns = {name: "a.name", minimum_price: "MIN(rt.price_per_night)", star_rating: "a.star_rating"} as const;
+  const sortColumns = { name: "a.name", minimum_price: "MIN(rt.price_per_night)", star_rating: "a.star_rating" } as const;
 
   const sortColumn = sortColumns[sortBy];
   // The sort direction is restricted to ASC or DESC.
   const sortDirection = sortOrder === "desc" ? "DESC" : "ASC";
 
- const query = `SELECT a.id, a.name, a.description, a.address, a.city, a.country,
-       a.star_rating, a.is_active, 
+  // Build the WHERE clause only when at least one filter exists.
+  // This prevents invalid SQL when administrators request all branches.
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const query = `SELECT a.id, a.name, a.description, a.address, a.city, a.country,
+       a.star_rating, a.is_active,
        MIN(rt.price_per_night) AS minimum_price,
       (SELECT ai.image_url
         FROM accommodation_images ai
@@ -167,7 +147,7 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
         LIMIT 1) AS image_url
     FROM accommodations a
     LEFT JOIN room_types rt ON rt.accommodation_id = a.id AND rt.is_active = TRUE
-    WHERE ${conditions.join(" AND ")}
+    ${whereClause}
     GROUP BY a.id
     ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, a.id ASC
     LIMIT $${values.length + 1}
@@ -177,7 +157,7 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
   // Count all matching active accommodations before pagination.
   const countQuery = `SELECT COUNT(*) AS total
     FROM accommodations a
-    WHERE ${conditions.join(" AND ")};
+    ${whereClause};
   `;
 
   const countResult = await pool.query<{ total: string }>(countQuery, values);
@@ -193,7 +173,7 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
 };
 
 // Retrieve a single accommodation by its ID, including the minimum price and first image.
-export const getAccommodationById = async (id: string ): Promise<AccommodationDetails | null> => {
+export const getAccommodationById = async (id: string): Promise<AccommodationDetails | null> => {
   // Fetch the main accommodation details and minimum nightly price.
   const accommodationQuery = `SELECT a.id, a.name, a.description, a.address, a.city, a.country, a.star_rating,
       MIN(rt.price_per_night) AS minimum_price,
@@ -254,6 +234,8 @@ export const getAccommodationById = async (id: string ): Promise<AccommodationDe
   ]);
 
   // Return one combined object for the hotel details page.
-  return {...accommodation, room_types: roomTypesResult.rows, images: imagesResult.rows,
-    amenities: amenitiesResult.rows, policies: policiesResult.rows};
+  return {
+    ...accommodation, room_types: roomTypesResult.rows, images: imagesResult.rows,
+    amenities: amenitiesResult.rows, policies: policiesResult.rows
+  };
 };
