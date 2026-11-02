@@ -184,7 +184,7 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
         const result = await pool.query(
             `UPDATE accommodations
              SET is_active = FALSE
-             WHERE id = $ AND is_active = TRUE
+             WHERE id = $1 AND is_active = TRUE
              RETURNING id, name, is_active`, [id]);
 
         // No active branch was found for this ID.
@@ -202,6 +202,54 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
             return;
         }
         res.status(200).json({success: true, message: "Hotel branch deactivated successfully.", data: result.rows[0]});
+    } catch (error) {
+        next(error);
+    }
+};
+
+// PATCH /api/accommodations/:id/activate
+// Reactivates a previously deactivated hotel branch.
+// Only authenticated administrators may perform this action.
+export const activateAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // Confirm administrator access.
+    if (!req.user || req.user.role !== "admin") {
+        res.status(403).json({success: false, message: "Administrator access is required."});
+        return;
+    }
+
+    // Validate the branch ID.
+    const id = req.params.id;
+
+    if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
+        res.status(400).json({success: false, message: "Accommodation ID must be a positive number."});
+        return;
+    }
+
+    try {
+        // Reactivate the branch without changing its room statuses.
+        const result = await pool.query(
+            `UPDATE accommodations
+             SET is_active = TRUE
+             WHERE id = $1 AND is_active = FALSE
+             RETURNING id, name, is_active`, [id]);
+
+        // No inactive branch was found for this ID.
+        if (result.rows.length === 0) {
+            const existingBranch = await pool.query(
+                `SELECT id, is_active
+                 FROM accommodations
+                 WHERE id = $1`, [id]);
+
+            if (existingBranch.rows.length === 0) {
+                res.status(404).json({success: false, message: "Accommodation not found."});
+                return;
+            }
+
+            res.status(409).json({success: false, message: "This hotel branch is already active."});
+            return;
+        }
+
+        res.status(200).json({success: true, message: "Hotel branch activated successfully.", data: result.rows[0]});
     } catch (error) {
         next(error);
     }

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {createAccommodation, deleteAccommodation, getAccommodationDetails,
+import {activateAccommodation, createAccommodation, deleteAccommodation, getAccommodationDetails,
         getAccommodations, updateAccommodation,  } from "../controllers/accommodationController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireRole } from "../middleware/roleMiddleware.js";
@@ -18,5 +18,8 @@ router.put("/:id", authenticateToken, requireRole("admin"), updateAccommodation)
 
 // Admin-only route: deactivate a hotel branch.
 router.delete("/:id", authenticateToken, requireRole("admin"), deleteAccommodation);
+
+// Reactivate an inactive hotel branch.
+router.patch("/:id/activate", activateAccommodation);
 
 export default router;

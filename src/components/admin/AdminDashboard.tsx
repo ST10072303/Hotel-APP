@@ -417,8 +417,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/rooms/${roomTypeId}`,
-                { method: "DELETE", headers: { Authorization: `Bearer ${authToken}` } }
-            );
+                { method: "DELETE", headers: { Authorization: `Bearer ${authToken}`}});
 
             const result: ApiResponse<RoomType> = await response.json();
 
@@ -439,14 +438,13 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         } catch (error) {
             setRoomFormError(true);
             setRoomFormMessage(error instanceof Error ? error.message
-                : "An unexpected error occurred while deactivating the room type.");
+            : "An unexpected error occurred while deactivating the room type.");
         }
     };
 
     // Reactivates a previously deactivated room type.
     const handleActivateRoomType = async (roomTypeId: string) => {
         const confirmed = window.confirm("Are you sure you want to activate this room type?");
-
         if (!confirmed) {
             return;
         }
@@ -535,7 +533,6 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                 {activeSection === 'Branches & Rooms' && (
                     <section className="admin-content-card">
-
                         <div className="admin-card-heading">
                             <div>
                                 <h2>Hotel branches</h2>
