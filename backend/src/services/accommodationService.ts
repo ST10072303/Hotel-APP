@@ -81,6 +81,19 @@ export interface AccommodationFilters {
   includeInactive?: boolean;
 }
 
+export interface Accommodation {
+  id: string;
+  name: string;
+  description: string | null;
+  address: string;
+  city: string;
+  country: string;
+  star_rating: string | null;
+  minimum_price: string | null;
+  image_url: string | null;
+  is_active: boolean;
+}
+
 // Retrieve all active accommodations, optionally filtered by city, search term, and price range.
 export const getAllAccommodations = async (filters: AccommodationFilters = {}): Promise<PaginatedAccommodations> => {
   // Default to page 1 and 10 accommodations per page.
@@ -144,15 +157,13 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
   // The sort direction is restricted to ASC or DESC.
   const sortDirection = sortOrder === "desc" ? "DESC" : "ASC";
 
-  const query = `SELECT a.id, a.name, a.description, a.address, a.city, a.country, a.star_rating,
+ const query = `SELECT a.id, a.name, a.description, a.address, a.city, a.country, a.star_rating, a.is_active,
       MIN(rt.price_per_night) AS minimum_price,
-      (
-        SELECT ai.image_url
+      (SELECT ai.image_url
         FROM accommodation_images ai
         WHERE ai.accommodation_id = a.id
         ORDER BY ai.display_order, ai.id
-        LIMIT 1
-      ) AS image_url
+        LIMIT 1) AS image_url
     FROM accommodations a
     LEFT JOIN room_types rt ON rt.accommodation_id = a.id AND rt.is_active = TRUE
     WHERE ${conditions.join(" AND ")}
@@ -160,7 +171,7 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
     ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, a.id ASC
     LIMIT $${values.length + 1}
     OFFSET $${values.length + 2};
-  `;
+`;
 
   // Count all matching active accommodations before pagination.
   const countQuery = `SELECT COUNT(*) AS total

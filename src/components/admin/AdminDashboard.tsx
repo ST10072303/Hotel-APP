@@ -150,8 +150,8 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
                 setProfile(profileResult.data);
                 // Load active hotel branches using the existing API.
-                const branchResponse = await fetch(`${API_BASE_URL}/api/accommodations?page=1&limit=100`,
-                    { headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal });
+                const branchResponse = await fetch(`${API_BASE_URL}/api/accommodations/admin?page=1&limit=100`,
+                {headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal});
 
                 const branchResult = (await branchResponse.json()) as ApiResponse<Accommodation[]>;
 

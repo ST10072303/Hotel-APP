@@ -269,3 +269,25 @@ export const activateAccommodation = async (req: Request, res: Response, next: N
         next(error);
     }
 };
+
+// GET /api/accommodations/admin
+// Returns active and inactive branches for administrators.
+export const getAdminAccommodations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const validation = accommodationFiltersSchema.safeParse(req.query);
+
+    if (!validation.success) {
+        res.status(400).json({success: false, message: "Invalid accommodation filters", errors: validation.error.issues.map((issue) => ({
+        field: issue.path.join("."), message: issue.message}))
+        });
+        return;
+    }
+
+    try {
+        const result = await getAllAccommodations({...validation.data, includeInactive: true});
+
+        res.status(200).json({success: true, count: result.data.length, data: result.data, pagination: {
+        total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages}});
+    } catch (error) {
+        next(error);
+    }
+};
