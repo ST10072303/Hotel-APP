@@ -20,7 +20,7 @@ const accommodationFiltersSchema = z.object({
 })
     .strict()
     .refine((filters) => filters.minPrice === undefined || filters.maxPrice === undefined || filters.minPrice <= filters.maxPrice,
-        {message: "minPrice cannot be greater than maxPrice"});
+        { message: "minPrice cannot be greater than maxPrice" });
 
 // GET /api/accommodations
 // List accommodations with optional filters and pagination.
@@ -28,15 +28,22 @@ export const getAccommodations = async (req: Request, res: Response): Promise<vo
     const validation = accommodationFiltersSchema.safeParse(req.query);
 
     if (!validation.success) {
-        res.status(400).json({success: false, message: "Invalid accommodation filters",
-            errors: validation.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message }))});
+        res.status(400).json({
+            success: false, message: "Invalid accommodation filters",
+            errors: validation.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message }))
+        });
         return;
     }
 
-    const result = await getAllAccommodations(validation.data);
+    // Only administrators may request inactive hotel branches.
+    const isAdmin = req.user?.role === "admin";
 
-    res.status(200).json({success: true, count: result.data.length, data: result.data,
-        pagination: {total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages}});
+    const result = await getAllAccommodations({...validation.data, includeInactive: isAdmin});
+
+    res.status(200).json({
+        success: true, count: result.data.length, data: result.data,
+        pagination: { total: result.total, page: result.page, limit: result.limit, totalPages: result.totalPages }
+    });
 };
 
 // GET /api/accommodations/:id
@@ -62,17 +69,19 @@ export const getAccommodationDetails = async (req: Request, res: Response): Prom
 
 // POST /api/accommodations
 // Creates a new hotel branch for an authenticated administrator.
-const createAccommodationSchema = z.object({name: z.string().trim().min(2).max(150),
+const createAccommodationSchema = z.object({
+    name: z.string().trim().min(2).max(150),
     description: z.string().trim().max(2000).nullable().optional(),
     address: z.string().trim().min(2).max(255),
     city: z.string().trim().min(2).max(100),
     country: z.string().trim().min(2).max(100),
-    star_rating: z.number().finite().min(1).max(5).nullable().optional()});
+    star_rating: z.number().finite().min(1).max(5).nullable().optional()
+});
 
 export const createAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // The route should already require authentication and the admin role.
     if (!req.user || req.user.role !== "admin") {
-        res.status(403).json({success: false, message: "Administrator access is required."});
+        res.status(403).json({ success: false, message: "Administrator access is required." });
         return;
     }
 
@@ -80,14 +89,17 @@ export const createAccommodation = async (req: Request, res: Response, next: Nex
     const validation = createAccommodationSchema.safeParse(req.body);
 
     if (!validation.success) {
-        res.status(400).json({success: false, message: "Invalid hotel branch details.",
-            errors: validation.error.issues.map((issue) => ({field: issue.path.join("."),
-            message: issue.message}))
+        res.status(400).json({
+            success: false, message: "Invalid hotel branch details.",
+            errors: validation.error.issues.map((issue) => ({
+                field: issue.path.join("."),
+                message: issue.message
+            }))
         });
         return;
     }
 
-    const {name, description, address, city, country, star_rating} = validation.data;
+    const { name, description, address, city, country, star_rating } = validation.data;
 
     try {
         // New branches are active by default.
@@ -97,7 +109,7 @@ export const createAccommodation = async (req: Request, res: Response, next: Nex
              RETURNING id, name, description, address, city, country, star_rating, is_active`,
             [name, description ?? null, address, city, country, star_rating ?? null]);
 
-        res.status(201).json({success: true, message: "Hotel branch created successfully.", data: result.rows[0]});
+        res.status(201).json({ success: true, message: "Hotel branch created successfully.", data: result.rows[0] });
     } catch (error) {
         next(error);
     }
@@ -105,18 +117,20 @@ export const createAccommodation = async (req: Request, res: Response, next: Nex
 
 // PUT /api/accommodations/:id
 // Updates an existing hotel branch.
-const updateAccommodationSchema = z.object({name: z.string().trim().min(2).max(150),
+const updateAccommodationSchema = z.object({
+    name: z.string().trim().min(2).max(150),
     description: z.string().trim().max(2000).nullable().optional(),
     address: z.string().trim().min(2).max(255),
     city: z.string().trim().min(2).max(100),
     country: z.string().trim().min(2).max(100),
     star_rating: z.number().finite().min(1).max(5).nullable().optional(),
-    is_active: z.boolean().optional()}).strict();
+    is_active: z.boolean().optional()
+}).strict();
 
 export const updateAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // Confirm that the user is an administrator.
     if (!req.user || req.user.role !== "admin") {
-        res.status(403).json({success: false, message: "Administrator access is required."});
+        res.status(403).json({ success: false, message: "Administrator access is required." });
         return;
     }
 
@@ -124,7 +138,7 @@ export const updateAccommodation = async (req: Request, res: Response, next: Nex
     const id = req.params.id;
 
     if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
-        res.status(400).json({success: false, message: "Accommodation ID must be a positive number."});
+        res.status(400).json({ success: false, message: "Accommodation ID must be a positive number." });
         return;
     }
 
@@ -132,13 +146,14 @@ export const updateAccommodation = async (req: Request, res: Response, next: Nex
     const validation = updateAccommodationSchema.safeParse(req.body);
 
     if (!validation.success) {
-        res.status(400).json({success: false, message: "Invalid hotel branch details.",
-            errors: validation.error.issues.map((issue) => ({field: issue.path.join("."), message: issue.message})),
+        res.status(400).json({
+            success: false, message: "Invalid hotel branch details.",
+            errors: validation.error.issues.map((issue) => ({ field: issue.path.join("."), message: issue.message })),
         });
         return;
     }
 
-    const {name, description, address, city, country, star_rating, is_active, } = validation.data;
+    const { name, description, address, city, country, star_rating, is_active, } = validation.data;
 
     try {
         // Update the branch and return its latest details.
@@ -151,11 +166,11 @@ export const updateAccommodation = async (req: Request, res: Response, next: Nex
 
         // Return 404 if the branch ID does not exist.
         if (result.rows.length === 0) {
-            res.status(404).json({success: false, message: "Accommodation not found."});
+            res.status(404).json({ success: false, message: "Accommodation not found." });
             return;
         }
 
-        res.status(200).json({success: true, message: "Hotel branch updated successfully.", data: result.rows[0]});
+        res.status(200).json({ success: true, message: "Hotel branch updated successfully.", data: result.rows[0] });
     } catch (error) {
         next(error);
     }
@@ -167,7 +182,7 @@ export const updateAccommodation = async (req: Request, res: Response, next: Nex
 export const deleteAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // Confirm administrator access.
     if (!req.user || req.user.role !== "admin") {
-        res.status(403).json({success: false, message: "Administrator access is required."});
+        res.status(403).json({ success: false, message: "Administrator access is required." });
         return;
     }
 
@@ -175,7 +190,7 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
     const id = req.params.id;
 
     if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
-        res.status(400).json({success: false, message: "Accommodation ID must be a positive number."});
+        res.status(400).json({ success: false, message: "Accommodation ID must be a positive number." });
         return;
     }
 
@@ -195,13 +210,13 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
                  WHERE id = $1`, [id]);
 
             if (existingBranch.rows.length === 0) {
-                res.status(404).json({success: false, message: "Accommodation not found."});
+                res.status(404).json({ success: false, message: "Accommodation not found." });
                 return;
             }
-            res.status(409).json({success: false, message: "This hotel branch is inactive."});
+            res.status(409).json({ success: false, message: "This hotel branch is inactive." });
             return;
         }
-        res.status(200).json({success: true, message: "Hotel branch deactivated successfully.", data: result.rows[0]});
+        res.status(200).json({ success: true, message: "Hotel branch deactivated successfully.", data: result.rows[0] });
     } catch (error) {
         next(error);
     }
@@ -213,7 +228,7 @@ export const deleteAccommodation = async (req: Request, res: Response, next: Nex
 export const activateAccommodation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // Confirm administrator access.
     if (!req.user || req.user.role !== "admin") {
-        res.status(403).json({success: false, message: "Administrator access is required."});
+        res.status(403).json({ success: false, message: "Administrator access is required." });
         return;
     }
 
@@ -221,7 +236,7 @@ export const activateAccommodation = async (req: Request, res: Response, next: N
     const id = req.params.id;
 
     if (typeof id !== "string" || !/^[1-9]\d*$/.test(id)) {
-        res.status(400).json({success: false, message: "Accommodation ID must be a positive number."});
+        res.status(400).json({ success: false, message: "Accommodation ID must be a positive number." });
         return;
     }
 
@@ -241,15 +256,15 @@ export const activateAccommodation = async (req: Request, res: Response, next: N
                  WHERE id = $1`, [id]);
 
             if (existingBranch.rows.length === 0) {
-                res.status(404).json({success: false, message: "Accommodation not found."});
+                res.status(404).json({ success: false, message: "Accommodation not found." });
                 return;
             }
 
-            res.status(409).json({success: false, message: "This hotel branch is already active."});
+            res.status(409).json({ success: false, message: "This hotel branch is already active." });
             return;
         }
 
-        res.status(200).json({success: true, message: "Hotel branch activated successfully.", data: result.rows[0]});
+        res.status(200).json({ success: true, message: "Hotel branch activated successfully.", data: result.rows[0] });
     } catch (error) {
         next(error);
     }

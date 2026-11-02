@@ -68,6 +68,19 @@ export interface AccommodationDetails extends Accommodation {
   policies: AccommodationPolicy[];
 }
 
+export interface AccommodationFilters {
+  city?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  page?: number;
+  limit?: number;
+  sortBy?: "name" | "minimum_price" | "star_rating";
+  sortOrder?: "asc" | "desc";
+  includeInactive?: boolean;
+}
+
 // Retrieve all active accommodations, optionally filtered by city, search term, and price range.
 export const getAllAccommodations = async (filters: AccommodationFilters = {}): Promise<PaginatedAccommodations> => {
   // Default to page 1 and 10 accommodations per page.
@@ -81,7 +94,11 @@ export const getAllAccommodations = async (filters: AccommodationFilters = {}): 
   const sortBy = filters.sortBy ?? "name";
   const sortOrder = filters.sortOrder ?? "asc";
 
-  const conditions: string[] = ["a.is_active = TRUE"];
+  // Include inactive branches only when explicitly requested by an administrator.
+  const conditions: string[] = [];
+  if (!filters.includeInactive) {
+  conditions.push("a.is_active = TRUE");  
+  }
   const values: (string | number)[] = [];
 
   // Add a condition only when the user supplies that filter.

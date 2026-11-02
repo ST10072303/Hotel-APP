@@ -17,7 +17,7 @@ interface Accommodation {
     city: string;
     country: string;
     star_rating: string | null;
-    is_active?: boolean;
+    is_active: boolean;
 }
 
 // Represents a room type returned by the room-management API.
@@ -260,11 +260,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
             }
 
             // Reset the form after a successful save.
-            setBranchForm({
-                name: '', description: '', address: '', city: '', country: 'South Africa',
-                star_rating: ''
-            });
-
+            setBranchForm({ name: '', description: '', address: '', city: '', country: 'South Africa', star_rating: '' });
             setEditingBranchId(null);
             setShowBranchForm(false);
         } catch (error) {
@@ -322,8 +318,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 setRoomFormMessage('Room type updated successfully.');
             } else {
                 setRoomTypes((currentRooms) => [...currentRooms, result.data].sort((a, b) =>
-                    a.name.localeCompare(b.name))
-                );
+                    a.name.localeCompare(b.name)));
                 setRoomFormMessage('Room type created successfully.');
             }
 
@@ -337,9 +332,6 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
             setIsSavingRoom(false);
         }
     };
-
-
-
 
     // Loads active room types for the selected hotel branch.
     const handleViewRooms = async (branch: Accommodation) => {
@@ -390,9 +382,10 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                 throw new Error(result.message || 'Unable to deactivate the hotel branch.');
             }
 
-            // Remove the deactivated branch from the active branch list.
+            // Update the branch status instead of removing it from the dashboard.
             setBranches((currentBranches) =>
-                currentBranches.filter((item) => item.id !== branch.id));
+                currentBranches.map((item) =>
+                    item.id === branch.id ? { ...item, ...result.data } : item));
 
             setBranchMessage(`${branch.name} has been deactivated successfully.`);
         } catch (error) {
@@ -400,6 +393,41 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
             setBranchMessage(error instanceof Error ? error.message
                 : 'An unexpected error occurred while deactivating the branch.');
+        }
+    };
+
+    // Reactivates a previously deactivated hotel branch.
+    const handleActivateBranch = async (branch: Accommodation) => {
+        const confirmed = window.confirm(`Are you sure you want to activate "${branch.name}"?`);
+
+        if (!confirmed) {
+            return;
+        }
+
+        setBranchMessage('');
+        setBranchError(false);
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/accommodations/${branch.id}/activate`,
+                { method: 'PATCH', headers: { Authorization: `Bearer ${authToken}` } }
+            );
+
+            const result: ApiResponse<Accommodation> = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Unable to activate the hotel branch.');
+            }
+
+            // Update the branch status without reloading the dashboard.
+            setBranches((currentBranches) =>
+                currentBranches.map((item) =>
+                    item.id === branch.id ? { ...item, ...result.data } : item));
+
+            setBranchMessage(`${branch.name} has been activated successfully.`);
+        } catch (error) {
+            setBranchError(true);
+
+            setBranchMessage(error instanceof Error ? error.message : 'An unexpected error occurred while activating the branch.');
         }
     };
 
@@ -417,7 +445,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/rooms/${roomTypeId}`,
-                { method: "DELETE", headers: { Authorization: `Bearer ${authToken}`}});
+                { method: "DELETE", headers: { Authorization: `Bearer ${authToken}` } });
 
             const result: ApiResponse<RoomType> = await response.json();
 
@@ -438,7 +466,7 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
         } catch (error) {
             setRoomFormError(true);
             setRoomFormMessage(error instanceof Error ? error.message
-            : "An unexpected error occurred while deactivating the room type.");
+                : "An unexpected error occurred while deactivating the room type.");
         }
     };
 
@@ -607,18 +635,24 @@ export function AdminDashboard({ authToken, onSignOut, onReturnToHotels }: Admin
                                 branches.map((branch) => (
                                     <article className="admin-branch-row" key={branch.id}>
                                         <div>
-                                            <strong>{branch.name} </strong>
+                                            <strong>{branch.name}</strong>
                                             <span>{branch.city}, {branch.country}</span>
-                                            <span style={{ color: 'green' }}>Active</span>
+                                            <span className={branch.is_active ? 'admin-status-active' : 'admin-status-inactive'}>
+                                                {branch.is_active ? 'Active' : 'Inactive'}
+                                            </span>
                                         </div>
 
                                         <div className="admin-branch-actions">
-                                            <button type="button" className="admin-edit-button"
-                                                onClick={() => handleViewRooms(branch)}>View</button>
-                                            <button type="button" className="admin-edit-button"
-                                                onClick={() => startEditingBranch(branch)}>Edit</button>
-                                            <button type="button" className="admin-deactivate-button"
-                                                onClick={() => handleDeactivateBranch(branch)}>De-activate</button>
+
+                                            <button type="button" className="admin-edit-button" onClick={() => handleViewRooms(branch)}
+                                            disabled={!branch.is_active}>View</button>
+                                            <button type="button" className="admin-edit-button" onClick={() => startEditingBranch(branch)}>Edit</button>
+                                            {branch.is_active ? (
+                                                <button type="button" className="admin-deactivate-button" onClick={() => handleDeactivateBranch(branch)}>Deactivate</button>
+                                            ) : (
+                                                <button type="button" className="admin-save-button" onClick={() => handleActivateBranch(branch)}>Activate</button>
+                                            )}
+
                                         </div>
                                     </article>
                                 ))
